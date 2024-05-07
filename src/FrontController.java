@@ -8,17 +8,17 @@ import java.io.PrintWriter;
 
 public class FrontController extends HttpServlet {
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        process_request(req,resp);
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        process_request(req, resp);
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        process_request(req,resp);
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        process_request(req, resp);
     }
 
     public void process_request(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        PrintWriter print =  resp.getWriter();
+        PrintWriter print = resp.getWriter();
         print.println(req.getRequestURL());
     }
 }
