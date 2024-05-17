@@ -28,6 +28,7 @@ public class FrontController extends HttpServlet {
     public void process_request(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         PrintWriter print = resp.getWriter();
         if (!this.checked) {
+            checked = true;
             String directory_controller =  getServletContext().getInitParameter("controller");
             String realPath = getServletContext().getRealPath(directory_controller);
             ArrayList<Class<?>> controllers_list = null;
@@ -48,6 +49,7 @@ public class FrontController extends HttpServlet {
     @Override
     public void init() throws ServletException {
         super.init();
+
     }
 
 
