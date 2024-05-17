@@ -9,6 +9,9 @@ SPRINT 1 :
         utilisation :
         xml contenant le directory du dossier controller et la class annotation pour les controller
 ]
+SPRINT 2 :
+    Creation de route pour les controller a l aide de la class Controller(Annotation)
+]
 
 UTILISATION
 [
