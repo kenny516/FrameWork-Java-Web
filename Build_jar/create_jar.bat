@@ -12,12 +12,7 @@ if not exist "%CLASS_DIR%" (
     exit /b 1
 )
 
-rem Vérification si le dossier contenant les classes est vide
-dir /b "%CLASS_DIR%" | findstr /r "\.class$" > nul
-if errorlevel 1 (
-    echo Le dossier spécifié ne contient pas de fichiers .class.
-    exit /b 1
-)
+
 
 rem Vérification si le fichier JAR de destination existe déjà
 if exist "%JAR_FILE%" (
