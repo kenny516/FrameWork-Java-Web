@@ -13,7 +13,7 @@ SPRINT 2 :
     Modifier le FrontControllerpour qu'il affiche quel class correspond a cette route et laquel des fonction de cette class est pointer
 
 SPRINT 3:
-
+    Affichage des valeur de retour des fonction pointer par l URL
 ]
 
 
