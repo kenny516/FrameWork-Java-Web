@@ -14,11 +14,12 @@ import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class FrontController extends HttpServlet {
 
 
-    HashMap<String, Object> road_controller = new HashMap<>();
+    HashMap<String, Mapping> road_controller = new HashMap<>();
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -32,13 +33,32 @@ public class FrontController extends HttpServlet {
     }
 
     public void process_request(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String url_taped = String.valueOf(req.getRequestURL()).split("/")[String.valueOf(req.getRequestURL()).split("/").length-1];
+        String url_taped = req.getServletPath();
         PrintWriter print = resp.getWriter();
         print.println(url_taped);
-        if (this.road_controller.get(url_taped)!= null) {
-            print.println("URL taped => "+url_taped);
-            print.println("class find => "+((Mapping)this.road_controller.get(url_taped)).getClass_name());
-            print.println("Method find => "+((Mapping)this.road_controller.get(url_taped)).getMethod_name());
+        if (this.road_controller.get(url_taped) != null) {
+            Mapping mapping = this.road_controller.get(url_taped);
+            print.println("URL taped => " + url_taped);
+            print.println("class find => " + mapping.getClass_name());
+            print.println("Method find => " + mapping.getMethod_name());
+            try {
+                // Load the class dynamically
+                Class<?> controllerClass = Class.forName( mapping.getClass_name());
+                Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
+
+                // Get the method to be invoked
+                Method method = controllerClass.getMethod(mapping.getMethod_name());
+                // Invoke the method and get the return value
+                Object returnValue = method.invoke(controllerInstance);
+
+                // Print the return value
+                print.println("Return value Method=> " + returnValue);
+            } catch (Exception e) {
+                e.printStackTrace();
+                print.println("Error invoking method: " + e.getMessage());
+            }
+        } else {
+            print.println("road not found for this URL " + url_taped);
         }
     }
 
@@ -54,8 +74,8 @@ public class FrontController extends HttpServlet {
             for (Method method : controller.getMethods()) {
                 if (method.isAnnotationPresent(Get.class)) {
                     road_controller.put(
-                            method.getAnnotation(Get.class).road_url().replace("/",""),
-                            new Mapping(controller.getSimpleName(), method.getName())
+                            method.getAnnotation(Get.class).road_url(),
+                            new Mapping(controller.getName(), method.getName())
                     );
                 }
             }
