@@ -14,7 +14,11 @@ SPRINT 2 :
 
 SPRINT 3:
     Affichage des valeur de retour des fonction pointer par l URL
+
+SPRINT 4:
+    Redirection vers une page jsp grace a la class ModelAndView
 ]
+
 
 
 UTILISATION
