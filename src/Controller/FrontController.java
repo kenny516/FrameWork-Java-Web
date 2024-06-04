@@ -50,16 +50,18 @@ public class FrontController extends HttpServlet {
 
                 if (returnValue instanceof ModelAndView modelView) {
                     handleModelAndView(modelView, req, res);
-                } else {
+                } else if(returnValue instanceof String) {
                     // Print the return value
                     print.println("Return value Method=> " + returnValue);
+                }else{
+                    throw new IOException("return type is not supported =>"+returnValue.getClass().getSimpleName());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 print.println("Error invoking method: " + e.getMessage());
             }
         } else {
-            print.println("road not found 404 for this URL " + url_taped);
+            throw new IOException("road not found 404 for this URL " + url_taped);
         }
     }
 
@@ -83,12 +85,18 @@ public class FrontController extends HttpServlet {
         ArrayList<Class<?>> controllers_list = AccesController.getControllerList(package_class, realPath);
         for (Class<?> controller : controllers_list) {
             for (Method method : controller.getMethods()) {
-                if (method.isAnnotationPresent(Get.class)) {
-                    road_controller.put(
-                            method.getAnnotation(Get.class).road_url(),
-                            new Mapping(controller.getName(), method.getName())
-                    );
+                // existe
+                if (road_controller.get(method.getAnnotation(Get.class).road_url()) != null) {
+                    if (method.isAnnotationPresent(Get.class)) {
+                        road_controller.put(
+                                method.getAnnotation(Get.class).road_url(),
+                                new Mapping(controller.getName(), method.getName())
+                        );
+                    }
+                } else {
+                    throw new ServletException("Url already exist =>" + method.getAnnotation(Get.class).road_url());
                 }
+
             }
         }
     }
