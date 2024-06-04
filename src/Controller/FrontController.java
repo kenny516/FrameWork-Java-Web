@@ -54,14 +54,14 @@ public class FrontController extends HttpServlet {
                     // Print the return value
                     print.println("Return value Method=> " + returnValue);
                 }else{
-                    throw new IOException("return type is not supported =>"+returnValue.getClass().getSimpleName());
+                    throw new IOException("Return type is not supported =>"+returnValue.getClass().getSimpleName());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 print.println("Error invoking method: " + e.getMessage());
             }
         } else {
-            throw new IOException("road not found 404 for this URL " + url_taped);
+            throw new IOException("Road not found 404 for this URL =>" + url_taped);
         }
     }
 

@@ -14,7 +14,7 @@ public class AccesController {
         ArrayList<Class<?>> classFiles = new ArrayList<>();
         File b = new File(directoryPath);
         if (!b.exists()){
-            throw new ServletException(" directory of controller not found =>"+directoryPath);
+            throw new ServletException("Directory of controller not found =>"+directoryPath);
         }
         for (File onefile : Objects.requireNonNull(b.listFiles())) {
             if (onefile.isFile() && onefile.getName().endsWith(".class")) {
