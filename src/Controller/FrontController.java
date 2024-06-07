@@ -50,11 +50,12 @@ public class FrontController extends HttpServlet {
 
                 if (returnValue instanceof ModelAndView modelView) {
                     handleModelAndView(modelView, req, res);
-                } else if(returnValue instanceof String) {
+                } else if (returnValue instanceof String) {
                     // Print the return value
                     print.println("Return value Method=> " + returnValue);
-                }else{
-                    throw new IOException("Return type is not supported =>"+returnValue.getClass().getSimpleName());
+
+                } else {
+                    throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -86,7 +87,7 @@ public class FrontController extends HttpServlet {
         for (Class<?> controller : controllers_list) {
             for (Method method : controller.getMethods()) {
                 // existe
-                if (road_controller.get(method.getAnnotation(Get.class).road_url()) != null) {
+                if (road_controller.get(method.getAnnotation(Get.class).road_url()) == null) {
                     if (method.isAnnotationPresent(Get.class)) {
                         road_controller.put(
                                 method.getAnnotation(Get.class).road_url(),
@@ -96,7 +97,6 @@ public class FrontController extends HttpServlet {
                 } else {
                     throw new ServletException("Url already exist =>" + method.getAnnotation(Get.class).road_url());
                 }
-
             }
         }
     }

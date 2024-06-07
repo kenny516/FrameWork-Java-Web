@@ -10,11 +10,14 @@ import java.util.Objects;
 
 public class AccesController {
 
-    public static ArrayList<Class<?>> getControllerList(String package_class,String directoryPath) throws ServletException {
+    public static ArrayList<Class<?>> getControllerList(String package_class, String directoryPath) throws ServletException {
         ArrayList<Class<?>> classFiles = new ArrayList<>();
         File b = new File(directoryPath);
-        if (!b.exists()){
-            throw new ServletException("Directory of controller not found =>"+directoryPath);
+        if (!b.exists()) {
+            throw new ServletException("Directory of controller not found =>" + directoryPath);
+        }
+        if (Objects.requireNonNull(b.listFiles()).length > 0) {
+            throw new ServletException("Liste de Controller vide =>" + directoryPath);
         }
         for (File onefile : Objects.requireNonNull(b.listFiles())) {
             if (onefile.isFile() && onefile.getName().endsWith(".class")) {
