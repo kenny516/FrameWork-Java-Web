@@ -1,22 +1,23 @@
 package Utils;
 
+import java.lang.reflect.Method;
+
 public class Mapping {
     String class_name;
-    String method_name;
+    Method method;
 
-    public Mapping(String class_name, String method_name){
+    public Mapping(String class_name, Method method){
         this.setClass_name(class_name);
-        this.setMethod_name(method_name);
+        this.setMethod(method);
     }
 
-    public String getMethod_name() {
-        return method_name;
+    public Method getMethod() {
+        return method;
     }
 
-    public void setMethod_name(String method_name) {
-        this.method_name = method_name;
+    public void setMethod(Method method) {
+        this.method = method;
     }
-
 
     public String getClass_name() {
         return class_name;
