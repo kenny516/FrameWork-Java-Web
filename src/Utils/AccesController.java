@@ -16,7 +16,7 @@ public class AccesController {
         if (!b.exists()) {
             throw new ServletException("Directory of controller not found =>" + directoryPath);
         }
-        if (Objects.requireNonNull(b.listFiles()).length > 0) {
+        if (Objects.requireNonNull(b.listFiles()).length == 0) {
             throw new ServletException("Liste de Controller vide =>" + directoryPath);
         }
         for (File onefile : Objects.requireNonNull(b.listFiles())) {

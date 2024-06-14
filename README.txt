@@ -25,6 +25,7 @@ SPRINT 6 - Gestion de Formulaire :
     Recuperation des donne du formulaire
     Appeler la fonction correspondante a l URL
     Affichage de la reponse de la fonction
+    Comment:contruction de l annotation Param pour les attribut d une fonction
 ]
 
 
