@@ -5,6 +5,10 @@ import Model.ModelAndView;
 import Utils.AccesController;
 import Utils.Mapping;
 import Utils.Requestparam;
+import com.thoughtworks.paranamer.AdaptiveParanamer;
+import com.thoughtworks.paranamer.BytecodeReadingParanamer;
+import com.thoughtworks.paranamer.DefaultParanamer;
+import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -99,9 +103,13 @@ public class FrontController extends HttpServlet {
             return method.invoke(controllerInstance);
         }
         Object[] paramValues = new Object[parameters.length];
+
+        Paranamer paranamer = new BytecodeReadingParanamer();
+        String[] paramNames = paranamer.lookupParameterNames(method);
+
         Requestparam requestparam = new Requestparam(request);
         for (int i = 0; i < parameters.length; i++) {
-            paramValues[i] = requestparam.mappingParam(parameters[i]);
+            paramValues[i] = requestparam.mappingParam(parameters[i],paramNames[i]);
         }
 
         // Invoke the method and get the return value

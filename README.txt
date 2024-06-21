@@ -26,8 +26,11 @@ SPRINT 6 - Gestion de Formulaire :
     Appeler la fonction correspondante a l URL
     Affichage de la reponse de la fonction
     Comment:contruction de l annotation Param pour les attribut d une fonction
+    PS: compiler avec -parameters
 ]
-
+SPRINT 7 - Gestion de Formulaire en mappent avec un objet[
+    Recuperer les argument du formulaire puis setter l objet avec ses arguement et le retourner
+]
 
 
 UTILISATION
