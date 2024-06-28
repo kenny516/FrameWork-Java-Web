@@ -62,9 +62,9 @@ public class Requestparam {
                 return request.getParameter(name);
             }
             //avec annotation
-            else if (param.getClass().isAnnotationPresent(Param.class)) {
-                if (request.getParameter(param.getClass().getAnnotation(Param.class).name()) != null) {
-                    return request.getParameter(param.getClass().getAnnotation(Param.class).name());
+            else if (param.isAnnotationPresent(Param.class)) {
+                if (request.getParameter(param.getAnnotation(Param.class).name()) != null) {
+                    return request.getParameter(param.getAnnotation(Param.class).name());
                 } else {
                     return null;
                 }
