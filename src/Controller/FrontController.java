@@ -1,6 +1,7 @@
 package Controller;
 
 import Annotation.Get;
+import Annotation.Param;
 import Model.ModelAndView;
 import Utils.AccesController;
 import Utils.Mapping;
@@ -54,8 +55,6 @@ public class FrontController extends HttpServlet {
                 // Load the class dynamically
 
                 Object returnValue = handleMethod(req, mapping);
-                Method m = mapping.getMethod();
-                print.println(m.getParameters()[0]);
                 ////////
                 if (returnValue instanceof ModelAndView modelView) {
                     handleModelAndView(modelView, req, res);
@@ -109,6 +108,9 @@ public class FrontController extends HttpServlet {
 
         Requestparam requestparam = new Requestparam(request);
         for (int i = 0; i < parameters.length; i++) {
+            if (!parameters[i].isAnnotationPresent(Param.class)) {
+                throw new ServletException("ETU 2409 : Annotation Param not found for this method =>" + method.getName());
+            }
             paramValues[i] = requestparam.mappingParam(parameters[i],paramNames[i]);
         }
 
