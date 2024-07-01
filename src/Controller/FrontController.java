@@ -2,33 +2,35 @@ package Controller;
 
 import Annotation.Get;
 import Annotation.Param;
+import Model.CustomSession;
 import Model.ModelAndView;
 import Utils.AccesController;
 import Utils.Mapping;
 import Utils.Requestparam;
-import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
-import com.thoughtworks.paranamer.DefaultParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
 public class FrontController extends HttpServlet {
     HashMap<String, Mapping> road_controller = new HashMap<>();
 
+
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp){
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         try {
             process_request(req, resp);
         } catch (Exception e) {
@@ -53,8 +55,9 @@ public class FrontController extends HttpServlet {
             Mapping mapping = this.road_controller.get(url_taped);
             try {
                 // Load the class dynamically
-
-                Object returnValue = handleMethod(req, mapping);
+                CustomSession customSession = new CustomSession();
+                Object returnValue = handleMethod(req, mapping, customSession);
+                CustomSessionToHttpSession(customSession,req);
                 ////////
                 if (returnValue instanceof ModelAndView modelView) {
                     handleModelAndView(modelView, req, res);
@@ -66,12 +69,12 @@ public class FrontController extends HttpServlet {
                     throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
                 }
             } catch (Exception e) {
-                for (StackTraceElement ste: e.getStackTrace()) {
+                for (StackTraceElement ste : e.getStackTrace()) {
                     print.println(ste.toString());
                 }
-                print.println("message = "+e.getMessage());
-                if(e.getCause() != null){
-                    print.println("cause = "+e.getCause());
+                print.println("message = " + e.getMessage());
+                if (e.getCause() != null) {
+                    print.println("cause = " + e.getCause());
                 }
             }
         } else {
@@ -89,7 +92,7 @@ public class FrontController extends HttpServlet {
         dispatcher.forward(req, res);
     }
 
-    private Object handleMethod(HttpServletRequest request, Mapping mapping) throws Exception {
+    private Object handleMethod(HttpServletRequest request, Mapping mapping, CustomSession customSession) throws Exception {
         // instantiation of class
         Class<?> controllerClass = Class.forName(mapping.getClass_name());
         Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
@@ -111,11 +114,39 @@ public class FrontController extends HttpServlet {
             if (!parameters[i].isAnnotationPresent(Param.class)) {
                 throw new ServletException("ETU 2409 : Annotation Param not found for this method =>" + method.getName());
             }
-            paramValues[i] = requestparam.mappingParam(parameters[i],paramNames[i]);
+            if (parameters[i].getType() == CustomSession.class) {
+                // Retrieve the session attribute named "mySession"
+                HttpSessionToCustomSession(customSession, request);
+                // add custom session to paramValues
+                paramValues[i] = customSession;
+            } else {
+                paramValues[i] = requestparam.mappingParam(parameters[i], paramNames[i]);
+            }
         }
-
         // Invoke the method and get the return value
         return method.invoke(controllerInstance, paramValues);
+    }
+
+    public void HttpSessionToCustomSession(CustomSession customSession, HttpServletRequest request) {
+        HttpSession session = request.getSession(true);
+        Enumeration<String> attributeNames = session.getAttributeNames();
+        while (attributeNames.hasMoreElements()) {
+            String attributeName = attributeNames.nextElement();
+            Object attributeValue = session.getAttribute(attributeName);
+            customSession.addSession(attributeName, attributeValue);
+        }
+    }
+
+    public CustomSession CustomSessionToHttpSession(CustomSession customSession, HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        session = request.getSession(true);
+        for (String key : customSession.getSession().keySet()) {
+            session.setAttribute(key, customSession.getSession().get(key));
+        }
+        return customSession;
     }
 
 
