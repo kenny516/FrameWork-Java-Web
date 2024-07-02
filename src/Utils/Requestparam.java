@@ -30,8 +30,8 @@ public class Requestparam {
             if (valueName.length > 1) {
                 if (valueName[0].equals(name)) {
                     listOfparamObj.add(nameParam);
-                } else if (param.getDeclaringExecutable().getDeclaringClass().isAnnotationPresent(Param.class)) {
-                    if (valueName[0].equals(param.getDeclaringExecutable().getDeclaringClass().getAnnotation(Param.class).name())) {
+                } else if (param.isAnnotationPresent(Param.class)) {
+                    if (valueName[0].equals(param.getAnnotation(Param.class).name())) {
                         listOfparamObj.add(nameParam);
                     }
                 }
@@ -45,7 +45,7 @@ public class Requestparam {
             for (String paramObj : listOfparamObj) {
                 String paramObjGET = request.getParameter(paramObj);
                 for (Method method : methods) {
-                    if (method.getName().equals("set" +  capitalize(paramObj.split("\\.")[1])))  {
+                    if (method.getName().equals("set" +  Tools.capitalize(paramObj.split("\\.")[1])))  {
                         if (method.getParameters()[0].getType() == int.class) {
                             method.invoke(paramInstance, Integer.valueOf(paramObjGET));
                         } else {
@@ -82,10 +82,5 @@ public class Requestparam {
         }
         return retour;
     }
-    private String capitalize(String str) {
-        if (str == null || str.isEmpty()) {
-            return str;
-        }
-        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
-    }
+
 }

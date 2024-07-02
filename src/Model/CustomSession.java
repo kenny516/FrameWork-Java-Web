@@ -1,29 +1,36 @@
 package Model;
 
+import jakarta.servlet.http.HttpSession;
+
 import java.util.HashMap;
 
 public class CustomSession {
-    private HashMap<String, Object> session = new HashMap<>();
+    private HttpSession httpSession;
 
-    public CustomSession(HashMap<String, Object> sessionMap) {
-        this.session = sessionMap;
+    public HttpSession getHttpSession() {
+        return httpSession;
+    }
+
+    public void setHttpSession(HttpSession httpSession) {
+        this.httpSession = httpSession;
+    }
+
+    public CustomSession(HttpSession httpSession) {
+        this.httpSession = httpSession;
     }
     public CustomSession() {
     }
 
-    public void setSession(HashMap<String, Object> session) {
-        this.session = session;
-    }
-
-    public HashMap<String, Object> getSession() {
-        return session;
-    }
 
     public void addSession(String key, Object value) {
-        session.put(key, value);
+        httpSession.setAttribute(key, value);
     }
 
-    public boolean removeSession(String key) {
-        return session.remove(key) != null;
+    public Object getAttribute(String key) {
+        return httpSession.getAttribute(key);
+    }
+
+    public void removeAttribute(String key) {
+        httpSession.removeAttribute(key);
     }
 }

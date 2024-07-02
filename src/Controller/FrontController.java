@@ -7,6 +7,7 @@ import Model.ModelAndView;
 import Utils.AccesController;
 import Utils.Mapping;
 import Utils.Requestparam;
+import Utils.Tools;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.RequestDispatcher;
@@ -18,6 +19,8 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
@@ -27,7 +30,7 @@ import java.util.Map;
 
 public class FrontController extends HttpServlet {
     HashMap<String, Mapping> road_controller = new HashMap<>();
-
+    CustomSession customSession;
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
@@ -49,15 +52,18 @@ public class FrontController extends HttpServlet {
 
     public void process_request(HttpServletRequest req, HttpServletResponse res) throws Exception {
         String url_taped = req.getServletPath();
+        this.customSession.setHttpSession(req.getSession(true));
         PrintWriter print = res.getWriter();
         print.println(url_taped);
         if (this.road_controller.get(url_taped) != null) {
             Mapping mapping = this.road_controller.get(url_taped);
             try {
                 // Load the class dynamically
-                CustomSession customSession = new CustomSession();
-                Object returnValue = handleMethod(req, mapping, customSession);
-                CustomSessionToHttpSession(customSession,req);
+                Class<?> controllerClass = Class.forName(mapping.getClass_name());
+                Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
+                this.handleFields(req, controllerClass,controllerInstance);
+
+                Object returnValue = handleMethod(req, mapping,controllerClass,controllerInstance);
                 ////////
                 if (returnValue instanceof ModelAndView modelView) {
                     handleModelAndView(modelView, req, res);
@@ -92,10 +98,17 @@ public class FrontController extends HttpServlet {
         dispatcher.forward(req, res);
     }
 
-    private Object handleMethod(HttpServletRequest request, Mapping mapping, CustomSession customSession) throws Exception {
-        // instantiation of class
-        Class<?> controllerClass = Class.forName(mapping.getClass_name());
-        Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
+    private void handleFields(HttpServletRequest request,Class controllerClass,Object controllerInstance) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Field[] listFields = controllerClass.getDeclaredFields();
+        for (Field field : listFields) {
+            if (field.getType() == CustomSession.class ) {
+                Method setCustomSession = controllerClass.getDeclaredMethod("set"+ Tools.capitalize(field.getName()),CustomSession.class);
+                setCustomSession.invoke(controllerInstance,this.customSession);
+            }
+        }
+    }
+
+    private Object handleMethod(HttpServletRequest request, Mapping mapping,Class controllerClass,Object controllerInstance) throws Exception {
 
         // Get the method to be invoked
         Method method = mapping.getMethod();
@@ -111,14 +124,11 @@ public class FrontController extends HttpServlet {
 
         Requestparam requestparam = new Requestparam(request);
         for (int i = 0; i < parameters.length; i++) {
-            if (!parameters[i].isAnnotationPresent(Param.class)) {
-                throw new ServletException("ETU 2409 : Annotation Param not found for this method =>" + method.getName());
-            }
             if (parameters[i].getType() == CustomSession.class) {
-                // Retrieve the session attribute named "mySession"
-                HttpSessionToCustomSession(customSession, request);
                 // add custom session to paramValues
-                paramValues[i] = customSession;
+                paramValues[i] = this.customSession;
+            }else if (!parameters[i].isAnnotationPresent(Param.class)) {
+                throw new ServletException("ETU 2409 : Annotation Param not found for this method =>" + method.getName());
             } else {
                 paramValues[i] = requestparam.mappingParam(parameters[i], paramNames[i]);
             }
@@ -127,32 +137,12 @@ public class FrontController extends HttpServlet {
         return method.invoke(controllerInstance, paramValues);
     }
 
-    public void HttpSessionToCustomSession(CustomSession customSession, HttpServletRequest request) {
-        HttpSession session = request.getSession(true);
-        Enumeration<String> attributeNames = session.getAttributeNames();
-        while (attributeNames.hasMoreElements()) {
-            String attributeName = attributeNames.nextElement();
-            Object attributeValue = session.getAttribute(attributeName);
-            customSession.addSession(attributeName, attributeValue);
-        }
-    }
-
-    public CustomSession CustomSessionToHttpSession(CustomSession customSession, HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-        session = request.getSession(true);
-        for (String key : customSession.getSession().keySet()) {
-            session.setAttribute(key, customSession.getSession().get(key));
-        }
-        return customSession;
-    }
 
 
     @Override
     public void init() throws ServletException {
         super.init();
+        this.customSession = new CustomSession();
         String directory_controller = getServletContext().getInitParameter("controller");
         String realPath = getServletContext().getRealPath(directory_controller);
         String package_class = directory_controller.split("/")[directory_controller.split("/").length - 1];
