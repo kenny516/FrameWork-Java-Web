@@ -2,33 +2,38 @@ package Controller;
 
 import Annotation.Get;
 import Annotation.Param;
+import Model.CustomSession;
 import Model.ModelAndView;
 import Utils.AccesController;
 import Utils.Mapping;
 import Utils.Requestparam;
-import com.thoughtworks.paranamer.AdaptiveParanamer;
+import Utils.Tools;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
-import com.thoughtworks.paranamer.DefaultParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
 public class FrontController extends HttpServlet {
     HashMap<String, Mapping> road_controller = new HashMap<>();
+    CustomSession customSession;
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp){
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         try {
             process_request(req, resp);
         } catch (Exception e) {
@@ -47,14 +52,18 @@ public class FrontController extends HttpServlet {
 
     public void process_request(HttpServletRequest req, HttpServletResponse res) throws Exception {
         String url_taped = req.getServletPath();
+        this.customSession.setHttpSession(req.getSession(true));
         PrintWriter print = res.getWriter();
         print.println(url_taped);
         if (this.road_controller.get(url_taped) != null) {
             Mapping mapping = this.road_controller.get(url_taped);
             try {
                 // Load the class dynamically
+                Class<?> controllerClass = Class.forName(mapping.getClass_name());
+                Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
+                this.handleFields(req, controllerClass,controllerInstance);
 
-                Object returnValue = handleMethod(req, mapping);
+                Object returnValue = handleMethod(req, mapping,controllerClass,controllerInstance);
                 ////////
                 if (returnValue instanceof ModelAndView modelView) {
                     handleModelAndView(modelView, req, res);
@@ -66,12 +75,12 @@ public class FrontController extends HttpServlet {
                     throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
                 }
             } catch (Exception e) {
-                for (StackTraceElement ste: e.getStackTrace()) {
+                for (StackTraceElement ste : e.getStackTrace()) {
                     print.println(ste.toString());
                 }
-                print.println("message = "+e.getMessage());
-                if(e.getCause() != null){
-                    print.println("cause = "+e.getCause());
+                print.println("message = " + e.getMessage());
+                if (e.getCause() != null) {
+                    print.println("cause = " + e.getCause());
                 }
             }
         } else {
@@ -89,10 +98,17 @@ public class FrontController extends HttpServlet {
         dispatcher.forward(req, res);
     }
 
-    private Object handleMethod(HttpServletRequest request, Mapping mapping) throws Exception {
-        // instantiation of class
-        Class<?> controllerClass = Class.forName(mapping.getClass_name());
-        Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
+    private void handleFields(HttpServletRequest request,Class controllerClass,Object controllerInstance) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Field[] listFields = controllerClass.getDeclaredFields();
+        for (Field field : listFields) {
+            if (field.getType() == CustomSession.class ) {
+                Method setCustomSession = controllerClass.getDeclaredMethod("set"+ Tools.capitalize(field.getName()),CustomSession.class);
+                setCustomSession.invoke(controllerInstance,this.customSession);
+            }
+        }
+    }
+
+    private Object handleMethod(HttpServletRequest request, Mapping mapping,Class controllerClass,Object controllerInstance) throws Exception {
 
         // Get the method to be invoked
         Method method = mapping.getMethod();
@@ -108,20 +124,25 @@ public class FrontController extends HttpServlet {
 
         Requestparam requestparam = new Requestparam(request);
         for (int i = 0; i < parameters.length; i++) {
-            if (!parameters[i].isAnnotationPresent(Param.class)) {
+            if (parameters[i].getType() == CustomSession.class) {
+                // add custom session to paramValues
+                paramValues[i] = this.customSession;
+            }else if (!parameters[i].isAnnotationPresent(Param.class)) {
                 throw new ServletException("ETU 2409 : Annotation Param not found for this method =>" + method.getName());
+            } else {
+                paramValues[i] = requestparam.mappingParam(parameters[i], paramNames[i]);
             }
-            paramValues[i] = requestparam.mappingParam(parameters[i],paramNames[i]);
         }
-
         // Invoke the method and get the return value
         return method.invoke(controllerInstance, paramValues);
     }
 
 
+
     @Override
     public void init() throws ServletException {
         super.init();
+        this.customSession = new CustomSession();
         String directory_controller = getServletContext().getInitParameter("controller");
         String realPath = getServletContext().getRealPath(directory_controller);
         String package_class = directory_controller.split("/")[directory_controller.split("/").length - 1];
