@@ -33,4 +33,7 @@ public class CustomSession {
     public void removeAttribute(String key) {
         httpSession.removeAttribute(key);
     }
+    public void destroySession(){
+        httpSession.invalidate();;
+    }
 }
