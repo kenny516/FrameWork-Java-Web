@@ -1,6 +1,3 @@
-Certainly! Here's an improved and structured README for getting started with your Java Web MVC framework:
-
----
 
 # Getting Started with MY FRAMEWORK JAVA WEB
 
