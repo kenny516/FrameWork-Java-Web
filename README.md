@@ -1,121 +1,85 @@
 
-# Getting Started with MY FRAMEWORK JAVA WEB
+# Java Web Framework
 
-## Introduction
+## Project Overview
+This project involves building a lightweight Java-based web framework that handles controllers, routing, and form management through a series of sprints. Each sprint progressively adds functionality to the framework, from simple URL mapping to form handling and exception management.
 
-MY FRAMEWORK JAVA WEB is a lightweight Java-based MVC (Model-View-Controller) framework designed to simplify web application development by providing a structured approach to handling requests, views, and data flow.
+## Sprints Breakdown
 
-## Installation
-
-1. **Download**
-    - Download the latest version of MY FRAMEWORK JAVA WEB from https://github.com/kenny516/FrameWork-Java-Web.git.
-
-2. **Setup**
-    - Include the MY FRAMEWORK JAVA WEB JAR file in your project's `WEB-INF/lib` directory.
-
-3. **Configuration**
-
-   Add the following configuration to your `web.xml` file to set up the front controller servlet:
-
-   ```xml
-   <!-- Configuration of the DispatcherServlet -->
-   <servlet>
-       <servlet-name>front_controller</servlet-name>
-       <servlet-class>Controller.FrontController</servlet-class>
-       <init-param>
-           <param-name>controller</param-name>
-           <param-value>/WEB-INF/classes/Controller</param-value>
-       </init-param>
-       <load-on-startup>1</load-on-startup>
-   </servlet>
-
-   <!-- Mapping of URLs for the DispatcherServlet -->
-   <servlet-mapping>
-       <servlet-name>front_controller</servlet-name>
-       <url-pattern>/</url-pattern>
-   </servlet-mapping>
-   ```
-
-   Ensure that `Controller.FrontController` is the main entry point (`servlet-class`) for routing requests to your controllers.
-
-## Creating Controllers
-
-1. **Annotate Controllers**
-
-   Annotate your controller classes with `@Controller` to identify them as part of your MVC architecture.
-
-   ```java
-   import your.package.Controller;
-
-   @Controller
-   public class MyController {
-       // Controller methods
-   }
-   ```
-
-2. **Define Routes**
-
-   Use the `@Get` annotation on methods within your controllers to define routes for handling HTTP GET requests.
-
-   ```java
-   import your.package.Get;
-
-   @Controller
-   public class MyController {
-
-       @Get("/users")
-       public void getUsers() {
-           // Logic to handle GET /users
-       }
-
-       @Get("/users/{id}")
-       public void getUserById(@Param("id") int userId) {
-           // Logic to handle GET /users/{id}
-       }
-   }
-   ```
-
-   Use `@Param` annotation to map URL path parameters to method parameters.
-
-## Example Usage
-
-Here's a simple example of how to define a controller and handle requests:
-
-```java
-import your.package.Controller;
-import your.package.Get;
-import your.package.Param;
-
-@Controller
-public class MyController {
-
-    @Get("/hello")
-    public String hello() {
-        return "Hello, World!";
-    }
-
-    @Get("/user/{id}")
-    public String getUserById(@Param("id") int userId) {
-        // Retrieve user details based on userId
-        return "User details for ID: " + userId;
-    }
-}
-```
-
-## Running Your Application
-
-1. **Deploy**
-    - Deploy your application to a servlet container like Apache Tomcat.
-
-2. **Access**
-    - Access your application using the defined routes, e.g., `http://localhost:8080/yourapp/hello` for the `/hello` route defined in the example.
-
-## Conclusion
-
-MY FRAMEWORK JAVA WEB simplifies web development by providing a structured approach to routing and handling HTTP requests. With annotations like `@Controller`, `@Get`, and `@Param`, you can quickly define controllers and routes for your web application.
-
-For more details and advanced features, refer to the [documentation](link-to-docs).
+### **SPRINT 0: FrontController Creation**
+- **Goal:** Create a `FrontController` to capture and display the URL entered by the user.
+- **Description:**
+    - Developed the `FrontController` to handle HTTP requests and print the URL for basic validation.
 
 ---
 
-This README provides a clear and structured guide for developers to get started with your framework, including installation, configuration, defining controllers, handling routes, example usage, and running the application. Adjust URLs, package names, and annotations as per your framework's actual implementation.
+### **SPRINT 1: Controllers Listing**
+- **Goal:** Modify the `FrontController` to list all controllers in the project.
+- **Description:**
+    - Created a `Controller` annotation for marking classes as controllers.
+    - Introduced an XML configuration file to specify the directory containing the controllers.
+    - Extended the `FrontController` to dynamically detect and list all annotated controllers.
+
+---
+
+### **SPRINT 2: Route Mapping for Controllers**
+- **Goal:** Implement routing for controllers using annotations.
+- **Description:**
+    - Added a `Controller` annotation to denote classes and a `Get` annotation to map routes to methods.
+    - Modified the `FrontController` to associate URLs with controller classes and methods.
+    - Mapped specific URLs to corresponding methods, displaying which class and method the route points to.
+
+---
+
+### **SPRINT 3: Displaying Function Return Values**
+- **Goal:** Display the return values of functions corresponding to URLs.
+- **Description:**
+    - Updated the framework to invoke the method mapped to the URL and display its return value in the response.
+
+---
+
+### **SPRINT 4: JSP Page Redirection**
+- **Goal:** Handle requests and redirect to JSP pages.
+- **Description:**
+    - Introduced `ModelAndView` class for managing model data and views.
+    - Enabled the `FrontController` to redirect to JSP pages, providing a seamless view rendering process.
+
+---
+
+### **SPRINT 5: Exception Handling**
+- **Goal:** Integrate exception handling into the framework.
+- **Description:**
+    - Added exception handling to `FrontController` and `AccessController`.
+    - Handled both system and user-defined exceptions, improving error management and debugging.
+
+---
+
+### **SPRINT 6: Form Handling**
+- **Goal:** Enable form data submission and processing.
+- **Description:**
+    - Built functionality to capture form data and call the corresponding function based on the URL.
+    - Displayed the function’s response after form submission.
+    - Implemented a `Param` annotation for mapping form fields to method parameters.
+    - Note: To ensure proper mapping, compile the project using the `-parameters` flag.
+
+---
+
+### **SPRINT 7: Form Handling with Object Mapping**
+- **Goal:** Map form fields directly to an object’s properties.
+- **Description:**
+    - Collected form arguments and set them into a Java object, then returned the object for further processing.
+
+---
+
+### **SPRINT 8: Handling Session**
+
+---
+
+### **SPRINT 9: REST API Implementation**
+- **Goal:** Implement a REST API layer.
+- **Description:**
+    - Created a new `RestApi` annotation for REST-enabled controllers.
+    - Modified the `FrontController` to detect and verify the presence of the `RestApi` annotation.
+    - Retrieved the return value of methods annotated with `RestApi`, converted the data to JSON using the Gson library, and returned it to the client via `getWriter` for JSON responses.
+
+---

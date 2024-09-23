@@ -29,3 +29,4 @@ bin/
 .DS_Store
 /lib/
 /.idea/
+.idea/misc.xml
