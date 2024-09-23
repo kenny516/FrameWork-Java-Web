@@ -28,5 +28,5 @@ bin/
 ### Mac OS ###
 .DS_Store
 /lib/
-/.idea/
-.idea/misc.xml
+
+.idea/
