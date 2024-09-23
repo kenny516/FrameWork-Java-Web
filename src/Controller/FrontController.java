@@ -55,7 +55,7 @@ public class FrontController extends HttpServlet {
         String url_taped = req.getServletPath();
         this.customSession.setHttpSession(req.getSession(true));
         PrintWriter print = res.getWriter();
-        print.println(url_taped);
+//        print.println(url_taped);
         if (this.road_controller.get(url_taped) != null) {
             Mapping mapping = this.road_controller.get(url_taped);
             try {
@@ -66,12 +66,10 @@ public class FrontController extends HttpServlet {
 
                 Object returnValue = handleMethod(req, mapping,controllerClass,controllerInstance);
                 if (mapping.getMethod().isAnnotationPresent(RestApi.class)){
-                    PrintWriter response =  res.getWriter();
-
                     if (returnValue instanceof ModelAndView modelView) {
-                        response.write(json.toJson(modelView.getData()));
+                        print.write(json.toJson(modelView.getData()));
                     }else {
-                        response.write(json.toJson(returnValue));
+                        print.write(json.toJson(returnValue));
                     }
                 }else{
                     ////////
