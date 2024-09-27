@@ -66,6 +66,7 @@ public class FrontController extends HttpServlet {
 
                 Object returnValue = handleMethod(req, mapping,controllerClass,controllerInstance);
                 if (mapping.getMethod().isAnnotationPresent(RestApi.class)){
+                    res.setContentType("text/json");
                     if (returnValue instanceof ModelAndView modelView) {
                         print.write(json.toJson(modelView.getData()));
                     }else {
