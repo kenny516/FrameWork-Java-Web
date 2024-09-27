@@ -2,12 +2,14 @@ package Controller;
 
 import Annotation.Get;
 import Annotation.Param;
+import Annotation.RestApi;
 import Model.CustomSession;
 import Model.ModelAndView;
 import Utils.AccesController;
 import Utils.Mapping;
 import Utils.Requestparam;
 import Utils.Tools;
+import com.google.gson.Gson;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.RequestDispatcher;
@@ -15,7 +17,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -24,11 +25,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
 public class FrontController extends HttpServlet {
+    Gson json = new Gson();
     HashMap<String, Mapping> road_controller = new HashMap<>();
     CustomSession customSession;
 
@@ -54,7 +55,7 @@ public class FrontController extends HttpServlet {
         String url_taped = req.getServletPath();
         this.customSession.setHttpSession(req.getSession(true));
         PrintWriter print = res.getWriter();
-        print.println(url_taped);
+//        print.println(url_taped);
         if (this.road_controller.get(url_taped) != null) {
             Mapping mapping = this.road_controller.get(url_taped);
             try {
@@ -64,15 +65,24 @@ public class FrontController extends HttpServlet {
                 this.handleFields(req, controllerClass,controllerInstance);
 
                 Object returnValue = handleMethod(req, mapping,controllerClass,controllerInstance);
-                ////////
-                if (returnValue instanceof ModelAndView modelView) {
-                    handleModelAndView(modelView, req, res);
-                } else if (returnValue instanceof String) {
-                    // Print the return value
-                    print.println("Return value Method=> " + returnValue);
+                if (mapping.getMethod().isAnnotationPresent(RestApi.class)){
+                    res.setContentType("text/json");
+                    if (returnValue instanceof ModelAndView modelView) {
+                        print.write(json.toJson(modelView.getData()));
+                    }else {
+                        print.write(json.toJson(returnValue));
+                    }
+                }else{
+                    ////////
+                    if (returnValue instanceof ModelAndView modelView) {
+                        handleModelAndView(modelView, req, res);
+                    } else if (returnValue instanceof String) {
+                        // Print the return value
+                        print.println("Return value Method=> " + returnValue);
 
-                } else {
-                    throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                    } else {
+                        throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                    }
                 }
             } catch (Exception e) {
                 for (StackTraceElement ste : e.getStackTrace()) {

@@ -1,7 +1,7 @@
 @echo off
 
 rem Chemin vers le dossier contenant les fichiers .class
-set CLASS_DIR=D:\FrameWork Java Web\out
+set CLASS_DIR=D:\L3\s5\MrNaina\FrameWork-Java-Web\out\production\FrameWork-Java-Web
 
 rem Nom du fichier JAR de destination (modifiable selon vos besoins)
 set JAR_FILE=Framework.jar
