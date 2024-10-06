@@ -1,8 +1,6 @@
 package Controller;
 
-import Annotation.Get;
-import Annotation.Param;
-import Annotation.RestApi;
+import Annotation.*;
 import Model.CustomSession;
 import Model.ModelAndView;
 import Utils.AccesController;
@@ -35,67 +33,74 @@ public class FrontController extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-        try {
-            process_request(req, resp);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        handleRequest(req, resp, "POST");
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        handleRequest(req, resp, "GET");
+    }
+
+    private void handleRequest(HttpServletRequest req, HttpServletResponse resp, String requestMethod) {
         try {
-            process_request(req, resp);
+            String urlTaped = req.getServletPath();
+            customSession.setHttpSession(req.getSession(true));
+            Mapping mapping = road_controller.get(urlTaped);
+
+            if (mapping == null) {
+                throw new ServletException("Url not found =>" + urlTaped);
+            }
+
+            if (!requestMethod.equals(mapping.getVerb())) {
+                throw new ServletException("Access denied for method " + requestMethod+ ", " + mapping.getVerb()  + " required");
+            }
+
+            process_request(req, resp, mapping);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void process_request(HttpServletRequest req, HttpServletResponse res) throws Exception {
-        String url_taped = req.getServletPath();
-        this.customSession.setHttpSession(req.getSession(true));
+
+    public void process_request(HttpServletRequest req, HttpServletResponse res, Mapping mapping) throws Exception {
         PrintWriter print = res.getWriter();
-//        print.println(url_taped);
-        if (this.road_controller.get(url_taped) != null) {
-            Mapping mapping = this.road_controller.get(url_taped);
-            try {
-                // Load the class dynamically
-                Class<?> controllerClass = Class.forName(mapping.getClass_name());
-                Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
-                this.handleFields(req, controllerClass,controllerInstance);
+        try {
+            // Load the class dynamically
+            Class<?> controllerClass = Class.forName(mapping.getClass_name());
+            Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
+            this.handleFields(req, controllerClass, controllerInstance);
 
-                Object returnValue = handleMethod(req, mapping,controllerClass,controllerInstance);
-                if (mapping.getMethod().isAnnotationPresent(RestApi.class)){
-                    res.setContentType("text/json");
-                    if (returnValue instanceof ModelAndView modelView) {
-                        print.write(json.toJson(modelView.getData()));
-                    }else {
-                        print.write(json.toJson(returnValue));
-                    }
-                }else{
-                    ////////
-                    if (returnValue instanceof ModelAndView modelView) {
-                        handleModelAndView(modelView, req, res);
-                    } else if (returnValue instanceof String) {
-                        // Print the return value
-                        print.println("Return value Method=> " + returnValue);
+            Object returnValue = handleMethod(req, mapping, controllerClass, controllerInstance);
 
-                    } else {
-                        throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
-                    }
+            if (mapping.getMethod().isAnnotationPresent(RestApi.class)) {
+                res.setContentType("text/json");
+                if (returnValue instanceof ModelAndView modelView) {
+                    print.write(json.toJson(modelView.getData()));
+                } else {
+                    print.write(json.toJson(returnValue));
                 }
-            } catch (Exception e) {
-                for (StackTraceElement ste : e.getStackTrace()) {
-                    print.println(ste.toString());
-                }
-                print.println("message = " + e.getMessage());
-                if (e.getCause() != null) {
-                    print.println("cause = " + e.getCause());
+            } else {
+                ////////
+                if (returnValue instanceof ModelAndView modelView) {
+                    handleModelAndView(modelView, req, res);
+                } else if (returnValue instanceof String) {
+                    // Print the return value
+                    print.println("Return value Method=> " + returnValue);
+
+                } else {
+                    throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
                 }
             }
-        } else {
-            throw new IOException("Road not found 404 for this URL =>" + url_taped);
+        } catch (Exception e) {
+            for (StackTraceElement ste : e.getStackTrace()) {
+                print.println(ste.toString());
+            }
+            print.println("message = " + e.getMessage());
+            if (e.getCause() != null) {
+                print.println("cause = " + e.getCause());
+            }
         }
+
     }
 
     private void handleModelAndView(ModelAndView modelView, HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
@@ -108,20 +113,21 @@ public class FrontController extends HttpServlet {
         dispatcher.forward(req, res);
     }
 
-    private void handleFields(HttpServletRequest request,Class controllerClass,Object controllerInstance) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    private void handleFields(HttpServletRequest request, Class controllerClass, Object controllerInstance) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Field[] listFields = controllerClass.getDeclaredFields();
         for (Field field : listFields) {
-            if (field.getType() == CustomSession.class ) {
-                Method setCustomSession = controllerClass.getDeclaredMethod("set"+ Tools.capitalize(field.getName()),CustomSession.class);
-                setCustomSession.invoke(controllerInstance,this.customSession);
+            if (field.getType() == CustomSession.class) {
+                Method setCustomSession = controllerClass.getDeclaredMethod("set" + Tools.capitalize(field.getName()), CustomSession.class);
+                setCustomSession.invoke(controllerInstance, this.customSession);
             }
         }
     }
 
-    private Object handleMethod(HttpServletRequest request, Mapping mapping,Class controllerClass,Object controllerInstance) throws Exception {
+    private Object handleMethod(HttpServletRequest request, Mapping mapping, Class controllerClass, Object controllerInstance) throws Exception {
 
         // Get the method to be invoked
         Method method = mapping.getMethod();
+
 
         Parameter[] parameters = method.getParameters();
         if (parameters.length == 0) {
@@ -137,7 +143,7 @@ public class FrontController extends HttpServlet {
             if (parameters[i].getType() == CustomSession.class) {
                 // add custom session to paramValues
                 paramValues[i] = this.customSession;
-            }else if (!parameters[i].isAnnotationPresent(Param.class)) {
+            } else if (!parameters[i].isAnnotationPresent(Param.class)) {
                 throw new ServletException("ETU 2409 : Annotation Param not found for this method =>" + method.getName());
             } else {
                 paramValues[i] = requestparam.mappingParam(parameters[i], paramNames[i]);
@@ -147,6 +153,15 @@ public class FrontController extends HttpServlet {
         return method.invoke(controllerInstance, paramValues);
     }
 
+    public String handleRequestMethod(Method method) {
+        if (method.isAnnotationPresent(Get.class)) {
+            return "GET";
+        } else if (method.isAnnotationPresent(Post.class)) {
+            return "POST";
+        } else {
+            return "GET";
+        }
+    }
 
 
     @Override
@@ -160,14 +175,14 @@ public class FrontController extends HttpServlet {
         for (Class<?> controller : controllers_list) {
             for (Method method : controller.getMethods()) {
                 // existe
-                if (method.isAnnotationPresent(Get.class)) {
-                    if (road_controller.get(method.getAnnotation(Get.class).road_url()) == null) {
+                if (method.isAnnotationPresent(Url.class)) {
+                    if (road_controller.get(method.getAnnotation(Url.class).road_url()) == null) {
                         road_controller.put(
-                                method.getAnnotation(Get.class).road_url(),
-                                new Mapping(controller.getName(), method)
+                                method.getAnnotation(Url.class).road_url(),
+                                new Mapping(controller.getName(), method, handleRequestMethod(method))
                         );
                     } else {
-                        throw new ServletException("Url already exist =>" + method.getAnnotation(Get.class).road_url());
+                        throw new ServletException("Url already exist =>" + method.getAnnotation(Url.class).road_url());
                     }
                 }
             }
