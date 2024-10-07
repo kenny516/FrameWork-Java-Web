@@ -3,10 +3,7 @@ package Controller;
 import Annotation.*;
 import Model.CustomSession;
 import Model.ModelAndView;
-import Utils.AccesController;
-import Utils.Mapping;
-import Utils.Requestparam;
-import Utils.Tools;
+import Utils.*;
 import com.google.gson.Gson;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
@@ -24,6 +21,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FrontController extends HttpServlet {
@@ -51,28 +49,37 @@ public class FrontController extends HttpServlet {
                 throw new ServletException("Url not found =>" + urlTaped);
             }
 
-            if (!requestMethod.equals(mapping.getVerb())) {
-                throw new ServletException("Access denied for method " + requestMethod+ ", " + mapping.getVerb()  + " required");
+            List<VerbAction> verbActions = mapping.getVerbActions();
+            Method method = null;
+            for (VerbAction verbAction : verbActions) {
+                if (requestMethod.equals(verbAction.getVerb())) {
+                    method = verbAction.getMethod();
+                    break;
+                }
+            }
+            if (method == null) {
+                throw new ServletException("Access denied for method " + requestMethod + " not verb found");
             }
 
-            process_request(req, resp, mapping);
+
+            process_request(req, resp, mapping.getClass_name(), method);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
 
-    public void process_request(HttpServletRequest req, HttpServletResponse res, Mapping mapping) throws Exception {
+    public void process_request(HttpServletRequest req, HttpServletResponse res, String className, Method method) throws Exception {
         PrintWriter print = res.getWriter();
         try {
             // Load the class dynamically
-            Class<?> controllerClass = Class.forName(mapping.getClass_name());
+            Class<?> controllerClass = Class.forName(className);
             Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
             this.handleFields(req, controllerClass, controllerInstance);
 
-            Object returnValue = handleMethod(req, mapping, controllerClass, controllerInstance);
+            Object returnValue = handleMethod(req, method, controllerInstance);
 
-            if (mapping.getMethod().isAnnotationPresent(RestApi.class)) {
+            if (method.isAnnotationPresent(RestApi.class)) {
                 res.setContentType("text/json");
                 if (returnValue instanceof ModelAndView modelView) {
                     print.write(json.toJson(modelView.getData()));
@@ -123,11 +130,7 @@ public class FrontController extends HttpServlet {
         }
     }
 
-    private Object handleMethod(HttpServletRequest request, Mapping mapping, Class controllerClass, Object controllerInstance) throws Exception {
-
-        // Get the method to be invoked
-        Method method = mapping.getMethod();
-
+    private Object handleMethod(HttpServletRequest request, Method method, Object controllerInstance) throws Exception {
 
         Parameter[] parameters = method.getParameters();
         if (parameters.length == 0) {
@@ -176,18 +179,24 @@ public class FrontController extends HttpServlet {
             for (Method method : controller.getMethods()) {
                 // existe
                 if (method.isAnnotationPresent(Url.class)) {
-                    if (road_controller.get(method.getAnnotation(Url.class).road_url()) == null) {
-                        road_controller.put(
-                                method.getAnnotation(Url.class).road_url(),
-                                new Mapping(controller.getName(), method, handleRequestMethod(method))
-                        );
+                    String url = method.getAnnotation(Url.class).road_url();
+                    Mapping mappingCurrent = road_controller.get(url);
+                    String verb = handleRequestMethod(method);
+                    if (mappingCurrent == null) {
+                        VerbAction verbAction = new VerbAction(verb, method);
+                        Mapping mp = new Mapping(controller.getName());
+                        mp.getVerbActions().add(verbAction);
+
+                        road_controller.put(url, mp);
                     } else {
-                        throw new ServletException("Url already exist =>" + method.getAnnotation(Url.class).road_url());
+                        if (mappingCurrent.isInVerbActions(verb)) {
+                            throw new ServletException("ETU 2409 : Method " + verb + " already exist for this url =>" + url);
+                        } else {
+                            mappingCurrent.getVerbActions().add(new VerbAction(verb, method));
+                        }
                     }
                 }
             }
         }
     }
-
-
 }
