@@ -19,10 +19,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FrontController extends HttpServlet {
     Gson json = new Gson();
@@ -77,7 +74,7 @@ public class FrontController extends HttpServlet {
                 throw new ServletException("Url not found =>" + urlTaped);
             }
 
-            List<VerbAction> verbActions = mapping.getVerbActions();
+            HashSet<VerbAction> verbActions = mapping.getVerbActions();
             Method method = null;
             for (VerbAction verbAction : verbActions) {
                 if (requestMethod.equals(verbAction.getVerb())) {
@@ -90,21 +87,21 @@ public class FrontController extends HttpServlet {
             }
 
 
-            process_request(req, resp, mapping.getClass_name(), method);
+            process_request(req, resp,method);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
 
-    public void process_request(HttpServletRequest req, HttpServletResponse res, String className, Method method) throws Exception {
+    public void process_request(HttpServletRequest req, HttpServletResponse res, Method method) throws Exception {
         if (res.isCommitted()) {
             return; // Prevent further response processing if already committed
         }
 
         PrintWriter print = res.getWriter();
         try {
-            Class<?> controllerClass = Class.forName(className);
+            Class<?> controllerClass = method.getDeclaringClass();
             Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
             this.handleFields(req, controllerClass, controllerInstance);
             Object returnValue = handleMethod(req, method, controllerInstance);
@@ -213,15 +210,13 @@ public class FrontController extends HttpServlet {
                     String verb = handleRequestMethod(method);
                     if (mappingCurrent == null) {
                         VerbAction verbAction = new VerbAction(verb, method);
-                        Mapping mp = new Mapping(controller.getName());
+                        Mapping mp = new Mapping();
                         mp.getVerbActions().add(verbAction);
 
                         road_controller.put(url, mp);
                     } else {
-                        if (mappingCurrent.isInVerbActions(verb)) {
+                        if (!mappingCurrent.getVerbActions().add(new VerbAction(verb, method))) {
                             throw new ServletException("ETU 2409 : Method " + verb + " already exist for this url =>" + url);
-                        } else {
-                            mappingCurrent.getVerbActions().add(new VerbAction(verb, method));
                         }
                     }
                 }
