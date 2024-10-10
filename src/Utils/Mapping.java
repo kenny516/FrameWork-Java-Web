@@ -1,9 +1,7 @@
 package Utils;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 
 public class Mapping {
     protected HashSet<VerbAction> verbActions;

@@ -120,7 +120,7 @@ public class FrontController extends HttpServlet {
                     if (returnValue instanceof ModelAndView modelView) {
                         handleModelAndView(modelView, req, res);
                     } else if (returnValue instanceof String) {
-                        print.println("Return value Method=> " + returnValue);
+                        print.println(returnValue);
                     } else {
                         throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
                     }

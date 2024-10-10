@@ -1,6 +1,7 @@
 package Utils;
 
 import java.lang.reflect.Method;
+import java.util.Objects;
 
 public class VerbAction {
     protected String verb;
@@ -30,14 +31,12 @@ public class VerbAction {
 
     @Override
     public boolean equals(Object obj) {
-        VerbAction vrbAc = (VerbAction)obj;
-        if (vrbAc.getVerb().equals(verb)) {
-            return true;
-        }
-        if (vrbAc.getMethod() == method){
-            return true;
-        }
-        return super.equals(obj);
+        if (this == obj) return true; // même objet
+        if (obj == null || getClass() != obj.getClass()) return false; // null ou mauvais type
+
+        VerbAction that = (VerbAction) obj;
+        // Comparer uniquement le verbe
+        return Objects.equals(verb, that.verb);
     }
 
     @Override
