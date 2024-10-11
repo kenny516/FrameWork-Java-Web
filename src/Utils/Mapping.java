@@ -4,10 +4,19 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 
 public class Mapping {
+    protected String class_name;
     protected HashSet<VerbAction> verbActions;
 
     public Mapping() {
         verbActions = new HashSet<VerbAction>();
+    }
+
+    public String getClass_name() {
+        return class_name;
+    }
+
+    public void setClass_name(String class_name) {
+        this.class_name = class_name;
     }
 
     public HashSet<VerbAction> getVerbActions() {

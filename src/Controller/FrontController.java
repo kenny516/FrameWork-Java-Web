@@ -37,15 +37,10 @@ public class FrontController extends HttpServlet {
     }
 
 
-    private void handleException(HttpServletRequest req, HttpServletResponse res, Exception e) {
-        req.setAttribute("errorMessage", e.getMessage());
+    private void handleException(HttpServletRequest req, HttpServletResponse res, Exception e) throws IOException {
         res.setStatus(500);
-        RequestDispatcher dispatcher = req.getRequestDispatcher("error/error.jsp");
-        try {
-            dispatcher.forward(req, res);
-        } catch (ServletException | IOException ex) {
-            ex.printStackTrace();
-        }
+        req.setAttribute("errorMessage", e.getMessage());
+        res.getWriter().println(e.getMessage());
     }
 
     private void handleRestApiException(HttpServletResponse res, Exception e) throws IOException {
@@ -211,11 +206,15 @@ public class FrontController extends HttpServlet {
                     if (mappingCurrent == null) {
                         VerbAction verbAction = new VerbAction(verb, method);
                         Mapping mp = new Mapping();
+                        mp.setClass_name(controller.getName());
                         mp.getVerbActions().add(verbAction);
 
                         road_controller.put(url, mp);
                     } else {
-                        if (!mappingCurrent.getVerbActions().add(new VerbAction(verb, method))) {
+                        if (!controller.getName().equals(mappingCurrent.getClass_name())) {
+                            throw  new ServletException("ETU 2409 :a controller "+mappingCurrent.getClass_name()+" already use this url =>" + url);
+                        }
+                        else if (!mappingCurrent.getVerbActions().add(new VerbAction(verb, method))) {
                             throw new ServletException("ETU 2409 : Method " + verb + " already exist for this url =>" + url);
                         }
                     }
