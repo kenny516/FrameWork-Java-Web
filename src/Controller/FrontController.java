@@ -19,10 +19,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FrontController extends HttpServlet {
     Gson json = new Gson();
@@ -39,6 +36,34 @@ public class FrontController extends HttpServlet {
         handleRequest(req, resp, "GET");
     }
 
+
+    private void handleException(HttpServletRequest req, HttpServletResponse res, Exception e) {
+        req.setAttribute("errorMessage", e.getMessage());
+        res.setStatus(500);
+        RequestDispatcher dispatcher = req.getRequestDispatcher("error/error.jsp");
+        try {
+            dispatcher.forward(req, res);
+        } catch (ServletException | IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void handleRestApiException(HttpServletResponse res, Exception e) throws IOException {
+        res.setContentType("application/json");
+        res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        Map<String, Object> errorResponse = new HashMap<>();
+        Map<String, Object> errorDetails = new HashMap<>();
+        errorDetails.put("message", e.getMessage());
+        errorDetails.put("status", 500);
+        errorDetails.put("details", "An unexpected error occurred");
+
+        errorResponse.put("error", errorDetails);
+        PrintWriter out = res.getWriter();
+        out.print(json.toJson(errorResponse));
+        out.flush();
+    }
+
+
     private void handleRequest(HttpServletRequest req, HttpServletResponse resp, String requestMethod) {
         try {
             String urlTaped = req.getServletPath();
@@ -49,7 +74,7 @@ public class FrontController extends HttpServlet {
                 throw new ServletException("Url not found =>" + urlTaped);
             }
 
-            List<VerbAction> verbActions = mapping.getVerbActions();
+            HashSet<VerbAction> verbActions = mapping.getVerbActions();
             Method method = null;
             for (VerbAction verbAction : verbActions) {
                 if (requestMethod.equals(verbAction.getVerb())) {
@@ -62,53 +87,54 @@ public class FrontController extends HttpServlet {
             }
 
 
-            process_request(req, resp, mapping.getClass_name(), method);
+            process_request(req, resp,method);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
 
 
-    public void process_request(HttpServletRequest req, HttpServletResponse res, String className, Method method) throws Exception {
+    public void process_request(HttpServletRequest req, HttpServletResponse res, Method method) throws Exception {
+        if (res.isCommitted()) {
+            return; // Prevent further response processing if already committed
+        }
+
         PrintWriter print = res.getWriter();
         try {
-            // Load the class dynamically
-            Class<?> controllerClass = Class.forName(className);
+            Class<?> controllerClass = method.getDeclaringClass();
             Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
             this.handleFields(req, controllerClass, controllerInstance);
-
             Object returnValue = handleMethod(req, method, controllerInstance);
 
             if (method.isAnnotationPresent(RestApi.class)) {
-                res.setContentType("text/json");
-                if (returnValue instanceof ModelAndView modelView) {
-                    print.write(json.toJson(modelView.getData()));
-                } else {
-                    print.write(json.toJson(returnValue));
+                res.setContentType("application/json");
+                if (!res.isCommitted()) {  // Ensure the response isn't committed
+                    if (returnValue instanceof ModelAndView modelView) {
+                        print.write(json.toJson(modelView.getData()));
+                    } else {
+                        print.write(json.toJson(returnValue));
+                    }
                 }
             } else {
-                ////////
-                if (returnValue instanceof ModelAndView modelView) {
-                    handleModelAndView(modelView, req, res);
-                } else if (returnValue instanceof String) {
-                    // Print the return value
-                    print.println("Return value Method=> " + returnValue);
-
-                } else {
-                    throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                if (!res.isCommitted()) {  // Ensure response isn't committed for JSP
+                    if (returnValue instanceof ModelAndView modelView) {
+                        handleModelAndView(modelView, req, res);
+                    } else if (returnValue instanceof String) {
+                        print.println(returnValue);
+                    } else {
+                        throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                    }
                 }
             }
         } catch (Exception e) {
-            for (StackTraceElement ste : e.getStackTrace()) {
-                print.println(ste.toString());
-            }
-            print.println("message = " + e.getMessage());
-            if (e.getCause() != null) {
-                print.println("cause = " + e.getCause());
+            if (method.isAnnotationPresent(RestApi.class)) {
+                handleRestApiException(res, e);
+            } else {
+                handleException(req, res, e);
             }
         }
-
     }
+
 
     private void handleModelAndView(ModelAndView modelView, HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         Map<String, Object> modelData = modelView.getData();
@@ -184,15 +210,13 @@ public class FrontController extends HttpServlet {
                     String verb = handleRequestMethod(method);
                     if (mappingCurrent == null) {
                         VerbAction verbAction = new VerbAction(verb, method);
-                        Mapping mp = new Mapping(controller.getName());
+                        Mapping mp = new Mapping();
                         mp.getVerbActions().add(verbAction);
 
                         road_controller.put(url, mp);
                     } else {
-                        if (mappingCurrent.isInVerbActions(verb)) {
+                        if (!mappingCurrent.getVerbActions().add(new VerbAction(verb, method))) {
                             throw new ServletException("ETU 2409 : Method " + verb + " already exist for this url =>" + url);
-                        } else {
-                            mappingCurrent.getVerbActions().add(new VerbAction(verb, method));
                         }
                     }
                 }
