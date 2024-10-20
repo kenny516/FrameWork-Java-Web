@@ -9,6 +9,7 @@ import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,6 +22,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 
+@MultipartConfig
 public class FrontController extends HttpServlet {
     Gson json = new Gson();
     HashMap<String, Mapping> road_controller = new HashMap<>();
@@ -38,14 +40,34 @@ public class FrontController extends HttpServlet {
 
 
     private void handleException(HttpServletRequest req, HttpServletResponse res, Exception e) throws IOException {
-        res.setStatus(500);
-        req.setAttribute("errorMessage", e.getMessage());
-        res.getWriter().println(e.getMessage());
+        res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        res.setContentType("text/html");
+
+        // Create a styled HTML error message
+        String errorMessage = "<html>" +
+                "<head>" +
+                "<style>" +
+                "body { font-family: Arial, sans-serif; background-color: #f8d7da; color: #721c24; padding: 20px; }" +
+                "h1 { color: #f44336; }" +
+                ".error-message { border: 1px solid #f44336; background-color: #f8d7da; padding: 10px; border-radius: 5px; }" +
+                "</style>" +
+                "</head>" +
+                "<body>" +
+                "<h1>Internal Server Error</h1>" +
+                "<div class='error-message'>" +
+                "<strong>Error:</strong> " + e.getMessage() +
+                "</div>" +
+                "</body>" +
+                "</html>";
+
+        res.getWriter().println(errorMessage);
     }
 
     private void handleRestApiException(HttpServletResponse res, Exception e) throws IOException {
         res.setContentType("application/json");
         res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+        // Prepare the JSON error response
         Map<String, Object> errorResponse = new HashMap<>();
         Map<String, Object> errorDetails = new HashMap<>();
         errorDetails.put("message", e.getMessage());
@@ -53,10 +75,13 @@ public class FrontController extends HttpServlet {
         errorDetails.put("details", "An unexpected error occurred");
 
         errorResponse.put("error", errorDetails);
+
+        // Convert the error response to JSON
         PrintWriter out = res.getWriter();
         out.print(json.toJson(errorResponse));
         out.flush();
     }
+
 
 
     private void handleRequest(HttpServletRequest req, HttpServletResponse resp, String requestMethod) {
@@ -100,7 +125,9 @@ public class FrontController extends HttpServlet {
             Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
             this.handleFields(req, controllerClass, controllerInstance);
             Object returnValue = handleMethod(req, method, controllerInstance);
-
+            if (returnValue == void.class) {
+                return;
+            }
             if (method.isAnnotationPresent(RestApi.class)) {
                 res.setContentType("application/json");
                 if (!res.isCommitted()) {  // Ensure the response isn't committed
