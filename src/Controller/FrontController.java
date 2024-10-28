@@ -7,6 +7,7 @@ import Utils.*;
 import com.google.gson.Gson;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
+import error.ErrorHandler;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -27,71 +28,36 @@ public class FrontController extends HttpServlet {
     Gson json = new Gson();
     HashMap<String, Mapping> road_controller = new HashMap<>();
     CustomSession customSession;
+    ServletException servletException;
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         handleRequest(req, resp, "POST");
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         handleRequest(req, resp, "GET");
     }
 
 
     private void handleException(HttpServletRequest req, HttpServletResponse res, Exception e) throws IOException {
-        res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        res.setContentType("text/html");
-
-        // Create a styled HTML error message
-        String errorMessage = "<html>" +
-                "<head>" +
-                "<style>" +
-                "body { font-family: Arial, sans-serif; background-color: #f8d7da; color: #721c24; padding: 20px; }" +
-                "h1 { color: #f44336; }" +
-                ".error-message { border: 1px solid #f44336; background-color: #f8d7da; padding: 10px; border-radius: 5px; }" +
-                "</style>" +
-                "</head>" +
-                "<body>" +
-                "<h1>Internal Server Error</h1>" +
-                "<div class='error-message'>" +
-                "<strong>Error:</strong> " + e.getMessage() +
-                "</div>" +
-                "</body>" +
-                "</html>";
-
-        res.getWriter().println(errorMessage);
+        ErrorHandler.handleException(req, res, e);
     }
 
     private void handleRestApiException(HttpServletResponse res, Exception e) throws IOException {
-        res.setContentType("application/json");
-        res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-
-        // Prepare the JSON error response
-        Map<String, Object> errorResponse = new HashMap<>();
-        Map<String, Object> errorDetails = new HashMap<>();
-        errorDetails.put("message", e.getMessage());
-        errorDetails.put("status", 500);
-        errorDetails.put("details", "An unexpected error occurred");
-
-        errorResponse.put("error", errorDetails);
-
-        // Convert the error response to JSON
-        PrintWriter out = res.getWriter();
-        out.print(json.toJson(errorResponse));
-        out.flush();
+        ErrorHandler.handleRestApiException(res, e);
     }
 
 
-
-    private void handleRequest(HttpServletRequest req, HttpServletResponse resp, String requestMethod) {
+    private void handleRequest(HttpServletRequest req, HttpServletResponse resp, String requestMethod) throws IOException {
         try {
             String urlTaped = req.getServletPath();
             customSession.setHttpSession(req.getSession(true));
             Mapping mapping = road_controller.get(urlTaped);
 
             if (mapping == null) {
-                throw new ServletException("Url not found =>" + urlTaped);
+                handleException(req, resp, new ServletException("Url not found =>" + urlTaped));
             }
 
             HashSet<VerbAction> verbActions = mapping.getVerbActions();
@@ -103,13 +69,13 @@ public class FrontController extends HttpServlet {
                 }
             }
             if (method == null) {
-                throw new ServletException("Access denied for method " + requestMethod + " not verb found");
+                handleException(req, resp, new ServletException("Access denied for method " + requestMethod + " not verb found"));
             }
 
 
-            process_request(req, resp,method);
+            process_request(req, resp, method);
         } catch (Exception e) {
-            e.printStackTrace();
+            handleException(req, resp, e);
         }
     }
 
@@ -117,6 +83,10 @@ public class FrontController extends HttpServlet {
     public void process_request(HttpServletRequest req, HttpServletResponse res, Method method) throws Exception {
         if (res.isCommitted()) {
             return; // Prevent further response processing if already committed
+        }
+        if (this.servletException != null) {
+            handleException(req, res, this.servletException);
+            return;
         }
 
         PrintWriter print = res.getWriter();
@@ -239,10 +209,9 @@ public class FrontController extends HttpServlet {
                         road_controller.put(url, mp);
                     } else {
                         if (!controller.getName().equals(mappingCurrent.getClass_name())) {
-                            throw  new ServletException("ETU 2409 :a controller "+mappingCurrent.getClass_name()+" already use this url =>" + url);
-                        }
-                        else if (!mappingCurrent.getVerbActions().add(new VerbAction(verb, method))) {
-                            throw new ServletException("ETU 2409 : Method " + verb + " already exist for this url =>" + url);
+                            this.servletException = new ServletException("ETU 2409 :a controller " + mappingCurrent.getClass_name() + " already use this url =>" + url);
+                        } else if (!mappingCurrent.getVerbActions().add(new VerbAction(verb, method))) {
+                            this.servletException = new ServletException("ETU 2409 : Method " + verb + " already exist for this url =>" + url);
                         }
                     }
                 }
