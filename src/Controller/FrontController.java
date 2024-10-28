@@ -23,7 +23,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 
-@MultipartConfig
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024 * 2,
+        maxFileSize = 1024 * 1024 * 10,
+        maxRequestSize = 1024 * 1024 * 50
+)
 public class FrontController extends HttpServlet {
     Gson json = new Gson();
     HashMap<String, Mapping> road_controller = new HashMap<>();
@@ -58,6 +62,7 @@ public class FrontController extends HttpServlet {
 
             if (mapping == null) {
                 handleException(req, resp, new ServletException("Url not found =>" + urlTaped));
+                return;
             }
 
             HashSet<VerbAction> verbActions = mapping.getVerbActions();
@@ -69,7 +74,8 @@ public class FrontController extends HttpServlet {
                 }
             }
             if (method == null) {
-                handleException(req, resp, new ServletException("Access denied for method " + requestMethod + " not verb found"));
+                handleException(req, resp, new ServletException("Access denied for method or method doesn't exist" + requestMethod + " not verb found"));
+                return;
             }
 
 

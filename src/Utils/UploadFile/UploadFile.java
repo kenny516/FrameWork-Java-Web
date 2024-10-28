@@ -12,12 +12,25 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 public class UploadFile {
+    Part part;
+
+    public UploadFile(Part part) {
+        this.part = part;
+    }
+
+    public Part getPart() {
+        return part;
+    }
+
+    public void setPart(Part part) {
+        this.part = part;
+    }
+
     public static boolean isUpload(HttpServletRequest request, String name) {
         try {
             Part part = request.getPart(name);
             return part != null && part.getSize() > 0; // Ensure part has content
         } catch (Exception e) {
-            // Log exception for debugging
             e.printStackTrace();
             return false;
         }
@@ -34,40 +47,44 @@ public class UploadFile {
         return null;
     }
 
+
     /**
      * Saves an uploaded file to the specified directory
-     * @param part The uploaded file part
-     * @param uploadDir The directory to save the file to
-     * @return The path of the saved file, or null if save failed
+     * @param uploadDir The directory to save the file to do not put just / or \ as it will save to the root directory put a name of directory or..
+     *                  the racine is tomcat
+     * @return The path of the saved file
+     * @throws IOException if file operations fail
+     * @throws Exception if validation fails
      */
-    public static String saveFile(Part part, String uploadDir) throws IOException {
-        String fileName = extractFileName(part);
+    public String saveFile(String uploadDir) throws Exception {
+        Path rootPath = (uploadDir == null || uploadDir.isEmpty())
+                ? Paths.get("").toAbsolutePath().resolve("uploads")
+                : Paths.get(uploadDir).toAbsolutePath();
+
+        String fileName = extractFileName(this.getPart());
         if (fileName == null || fileName.isEmpty()) {
-            throw new IOException("Invalid file name");
+            throw new Exception("File does not have a name");
         }
 
-        File directory = new File(uploadDir);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
         String uniqueFileName = System.currentTimeMillis() + "_" + fileName;
-        Path filePath = Paths.get(uploadDir, uniqueFileName);
+        Path filePath = rootPath.resolve(uniqueFileName);
+        Files.createDirectories(rootPath);
 
-        try (InputStream input = part.getInputStream()) {
-            Files.copy(input, filePath, StandardCopyOption.REPLACE_EXISTING);
-            return filePath.toString();
-        } catch (IOException e) {
-            throw new IOException("Failed to save file: " + e.getMessage(), e);
+        if (!Files.isWritable(rootPath)) {
+            throw new Exception("Access denied - Cannot write to directory: " + rootPath.toString());
         }
+
+        part.write(filePath.toString());
+        return filePath.toString();
     }
+
 
     /**
      * Gets the byte array of an uploaded file
-     * @param part The uploaded file part
      * @return byte array containing the file data
      */
-    public static byte[] getBytes(Part part) throws IOException {
-        try (InputStream input = part.getInputStream()) {
+    public byte[] getBytes() throws IOException {
+        try (InputStream input = this.getPart().getInputStream()) {
             return input.readAllBytes();
         } catch (IOException e) {
             throw new IOException("Failed to read file bytes: " + e.getMessage(), e);

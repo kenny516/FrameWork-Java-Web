@@ -25,9 +25,9 @@ public class Requestparam {
         if (param.getType() == UploadFile.class) {
 //            throw new ServletException("ici "+param.getAnnotation(Param.class).name() + " "+request.getPart(param.getAnnotation(Param.class).name()));
             if (UploadFile.isUpload(request, param.getAnnotation(Param.class).name())) {
-                return request.getPart(param.getAnnotation(Param.class).name());
+                return new UploadFile(request.getPart(param.getAnnotation(Param.class).name()));
             }else {
-                return null;
+                throw new ServletException("No file uploaded or attribute name is incorrect for => "+param.getAnnotation(Param.class).name());
             }
         }
 
