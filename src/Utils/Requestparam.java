@@ -1,10 +1,9 @@
 package Utils;
 
 import Annotation.Param;
-import Utils.UploadFile.UploadFileTools;
+import Utils.UploadFile.UploadFile;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.Part;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -23,12 +22,12 @@ public class Requestparam {
     public Object mappingParam(Parameter param, String name) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, ServletException, IOException {
         ArrayList<String> listOfParamObj = collectObjectParameters(param, name);
 
-        if (param.getType() == Part.class) {
+        if (param.getType() == UploadFile.class) {
 //            throw new ServletException("ici "+param.getAnnotation(Param.class).name() + " "+request.getPart(param.getAnnotation(Param.class).name()));
-            if (UploadFileTools.isUpload(request, param.getAnnotation(Param.class).name())) {
-                return request.getPart(param.getAnnotation(Param.class).name());
+            if (UploadFile.isUpload(request, param.getAnnotation(Param.class).name())) {
+                return new UploadFile(request.getPart(param.getAnnotation(Param.class).name()));
             }else {
-                return null;
+                throw new ServletException("No file uploaded or attribute name is incorrect for => "+param.getAnnotation(Param.class).name());
             }
         }
 

@@ -27,9 +27,9 @@ public class ModelAndView {
 
     public void setUrl(String url) {this.url = url; }
 
-    public void add_data(String name, Object value) throws ServletException {
+    public void add_data(String name, Object value) throws Exception {
         if (this.url == null){
-            throw new ServletException("url Model and view null");
+            throw new Exception("url Model and view null");
         }
         this.data.put(name, value);
     }
