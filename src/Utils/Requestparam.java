@@ -1,6 +1,7 @@
 package Utils;
 
 import Annotation.Param;
+import Annotation.validation.Validator;
 import Utils.UploadFile.UploadFile;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,9 +46,11 @@ public class Requestparam {
                 if (setterMethod != null) {
                     Class<?> paramType = setterMethod.getParameters()[0].getType();
                     Object castedValue = castValue(paramValue, paramType);
+
                     setterMethod.invoke(paramInstance, castedValue);
                 }
             }
+            Validator.validate(paramInstance);
             return paramInstance;
         }
 
