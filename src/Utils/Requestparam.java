@@ -50,7 +50,7 @@ public class Requestparam {
                     setterMethod.invoke(paramInstance, castedValue);
                 }
             }
-            Validator.validate(paramInstance);
+            Validator.validate(paramInstance,request);
             return paramInstance;
         }
 
