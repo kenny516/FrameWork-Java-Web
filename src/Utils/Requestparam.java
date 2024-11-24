@@ -31,8 +31,6 @@ public class Requestparam {
                 throw new ServletException("No file uploaded or attribute name is incorrect for => "+param.getAnnotation(Param.class).name());
             }
         }
-
-
         // Check if it's an object
         if (!listOfParamObj.isEmpty()) {
             Object paramInstance = param.getType().getDeclaredConstructor().newInstance();
@@ -53,7 +51,6 @@ public class Requestparam {
             Validator.validate(paramInstance,request);
             return paramInstance;
         }
-
         // Otherwise, handle it as a basic type or annotated parameter
         return getParameterValue(param, name);
     }

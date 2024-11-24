@@ -20,20 +20,21 @@ public class Validator {
             try {
                 validateField(field, value);
             } catch (IllegalArgumentException e) {
-                // Ajouter l'erreur à la requête avec le nom conventionnel "error_<nom_du_champ>"
+                // error_fieldName pour recuperer l'erreur
                 errors.put("error_" + field.getName(), e.getMessage());
             }
         }
 
         // Ajouter les erreurs à la requête
         if (!errors.isEmpty()) {
+            request.setAttribute("error",true);
             for (Map.Entry<String, String> entry : errors.entrySet()) {
                 request.setAttribute(entry.getKey(), entry.getValue());
             }
-            return false; // Indique qu'il y a des erreurs
+            return false;
         }
 
-        return true; // Indique que la validation a réussi
+        return true;
     }
 
     private static void validateField(Field field, Object value) throws IllegalArgumentException {
@@ -93,5 +94,14 @@ public class Validator {
         if (!Pattern.matches(regex, value)) {
             throw new IllegalArgumentException(annotation.message());
         }
+    }
+
+
+    ////other things
+    public static boolean verifyErrorRequest(HttpServletRequest request){
+        if (Boolean.parseBoolean(request.getParameter("error"))){
+            return false;
+        }
+        return true;
     }
 }
