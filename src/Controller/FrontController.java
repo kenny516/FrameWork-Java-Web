@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.net.MalformedURLException;
 import java.util.*;
 
 @MultipartConfig(
@@ -62,7 +63,7 @@ public class FrontController extends HttpServlet {
             Mapping mapping = road_controller.get(urlTaped);
 
             if (mapping == null) {
-                handleException(req, resp, new ServletException("Url not found =>" + urlTaped));
+                handleException(req, resp, new ServletException("Url not found => " + urlTaped));
                 return;
             }
 
@@ -75,7 +76,7 @@ public class FrontController extends HttpServlet {
                 }
             }
             if (method == null) {
-                handleException(req, resp, new ServletException("Access denied for method or method doesn't exist" + requestMethod + " not verb found"));
+                handleException(req, resp, new ServletException("Access denied for  method doesn't exist" + requestMethod + " not verb found for URL :"+urlTaped));
                 return;
             }
 
@@ -115,13 +116,36 @@ public class FrontController extends HttpServlet {
                     }
                 }
             } else {
-                if (!res.isCommitted()) {  // Ensure response isn't committed for JSP
-                    if (returnValue instanceof ModelAndView modelView) {
-                        handleModelAndView(modelView, req, res);
-                    } else if (returnValue instanceof String) {
-                        print.println(returnValue);
+                if (!res.isCommitted()) {  // Ensure response isn't committed for JSP// Ensure response isn't committed for JSP
+                    if (Validator.verifyErrorRequest(req)) {
+                        String previousUrl = req.getHeader("Referer");
+                        if (previousUrl != null) {
+                            try {
+                                if (previousUrl.startsWith("http")) {
+                                    java.net.URL url = new java.net.URL(previousUrl);
+                                    previousUrl = url.getPath();
+                                    String contextPath = req.getContextPath();
+                                    if (previousUrl.startsWith(contextPath)) {
+                                        previousUrl = previousUrl.substring(contextPath.length());
+                                    }
+                                }
+                                req.setAttribute("action", previousUrl);
+                                //throw new Exception("url "+previousUrl);
+                                req.getRequestDispatcher(previousUrl).forward(req, res);
+                            } catch (MalformedURLException e) {
+                                throw new ServletException("URL malformée : " + previousUrl, e);
+                            }
+                        } else {
+                            throw new ServletException("En-tête 'Referer' absent");
+                        }
                     } else {
-                        throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                        if (returnValue instanceof ModelAndView modelView) {
+                            handleModelAndView(modelView, req, res);
+                        } else if (returnValue instanceof String) {
+                            print.println(returnValue);
+                        } else {
+                            throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                        }
                     }
                 }
             }
@@ -137,7 +161,6 @@ public class FrontController extends HttpServlet {
 
     private void handleModelAndView(ModelAndView modelView, HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         Map<String, Object> modelData = modelView.getData();
-
         for (Map.Entry<String, Object> entry : modelData.entrySet()) {
             req.setAttribute(entry.getKey(), entry.getValue());
         }
@@ -176,9 +199,6 @@ public class FrontController extends HttpServlet {
             } else {
                 paramValues[i] = requestparam.mappingParam(parameters[i], paramNames[i]);
             }
-        }
-        if (!Validator.verifyErrorRequest(request)){
-            // retourner vers le formulaire avec tous les donne
         }
         // Invoke the method and get the return value
         return method.invoke(controllerInstance, paramValues);

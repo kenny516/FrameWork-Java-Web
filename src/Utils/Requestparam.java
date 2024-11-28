@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -20,7 +21,7 @@ public class Requestparam {
         this.request = request;
     }
 
-    public Object mappingParam(Parameter param, String name) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, ServletException, IOException {
+    public Object mappingParam(Parameter param, String name) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, ServletException, IOException, NoSuchFieldException {
         ArrayList<String> listOfParamObj = collectObjectParameters(param, name);
 
         if (param.getType() == UploadFile.class) {
@@ -40,15 +41,18 @@ public class Requestparam {
                 String paramValue = request.getParameter(paramObj);
                 String fieldName = paramObj.split("\\.")[1];
                 Method setterMethod = findSetterMethod(methods, fieldName);
+                Field field = param.getType().getDeclaredField(fieldName);
 
                 if (setterMethod != null) {
                     Class<?> paramType = setterMethod.getParameters()[0].getType();
-                    Object castedValue = castValue(paramValue, paramType);
-
-                    setterMethod.invoke(paramInstance, castedValue);
+                    Validator.validate(field,paramValue,request);
+                    if (!Validator.verifyErrorRequest(request)){
+                        Object castedValue = castValue(paramValue, paramType);
+                        setterMethod.invoke(paramInstance, castedValue);
+                    }
                 }
             }
-            Validator.validate(paramInstance,request);
+            //Validator.validate(paramInstance,request);
             return paramInstance;
         }
         // Otherwise, handle it as a basic type or annotated parameter

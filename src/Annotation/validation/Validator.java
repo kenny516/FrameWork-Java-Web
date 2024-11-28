@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 public class Validator {
 
-    public static boolean validate(Object obj, HttpServletRequest request) throws IllegalAccessException {
+    public static void validate(Object obj, HttpServletRequest request) throws IllegalAccessException {
         Class<?> objClass = obj.getClass();
         Map<String, String> errors = new HashMap<>();
 
@@ -31,19 +31,37 @@ public class Validator {
             for (Map.Entry<String, String> entry : errors.entrySet()) {
                 request.setAttribute(entry.getKey(), entry.getValue());
             }
-            return false;
         }
-
-        return true;
     }
 
-    private static void validateField(Field field, Object value) throws IllegalArgumentException {
-        if (field.isAnnotationPresent(Required.class)) {
-            validateRequired(field, value);
+    public static void validate(Field field,Object value, HttpServletRequest request){
+        Map<String, String> errors = new HashMap<>();
+            field.setAccessible(true);
+            try {
+                validateField(field, value);
+            } catch (IllegalArgumentException e) {
+                // error_fieldName pour recuperer l'erreur
+                errors.put("error_" + field.getName(), e.getMessage());
+            }
+
+        // Ajouter les erreurs à la requête
+        if (!errors.isEmpty()) {
+            request.setAttribute("error",true);
+            for (Map.Entry<String, String> entry : errors.entrySet()) {
+                request.setAttribute(entry.getKey(), entry.getValue());
+            }
         }
+    }
+
+
+    private static void validateField(Field field, Object value) throws IllegalArgumentException {
 
         if (field.isAnnotationPresent(Size.class) && value instanceof CharSequence) {
             validateSize(field, (CharSequence) value);
+        }
+
+        if (field.isAnnotationPresent(Required.class)) {
+            validateRequired(field, value);
         }
 
         if (field.isAnnotationPresent(Min.class) && value instanceof Number) {
@@ -60,7 +78,7 @@ public class Validator {
     }
 
     private static void validateRequired(Field field, Object value) {
-        if (value == null || (value instanceof CharSequence && ((CharSequence) value).toString().isEmpty())) {
+        if (value == null || (value instanceof CharSequence && ((CharSequence) value).toString().isEmpty()) || String.valueOf(value).isEmpty()) {
             Required annotation = field.getAnnotation(Required.class);
             throw new IllegalArgumentException(annotation.message());
         }
@@ -99,9 +117,6 @@ public class Validator {
 
     ////other things
     public static boolean verifyErrorRequest(HttpServletRequest request){
-        if (Boolean.parseBoolean(request.getParameter("error"))){
-            return false;
-        }
-        return true;
+        return request.getAttribute("error") != null;
     }
 }

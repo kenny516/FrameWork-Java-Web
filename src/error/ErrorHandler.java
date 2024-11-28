@@ -202,6 +202,7 @@ public class ErrorHandler {
 
         String errorPage = buildErrorPage(e, statusCode);
         res.getWriter().println(errorPage);
+        e.printStackTrace(res.getWriter());
     }
 
     public static void handleRestApiException(HttpServletResponse res, Exception e) throws IOException {
