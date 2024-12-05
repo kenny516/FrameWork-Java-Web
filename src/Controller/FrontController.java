@@ -118,26 +118,24 @@ public class FrontController extends HttpServlet {
             } else {
                 if (!res.isCommitted()) {  // Ensure response isn't committed for JSP// Ensure response isn't committed for JSP
                     if (Validator.verifyErrorRequest(req)) {
-                        String previousUrl = req.getHeader("Referer");
-                        if (previousUrl != null) {
-                            try {
-                                if (previousUrl.startsWith("http")) {
-                                    java.net.URL url = new java.net.URL(previousUrl);
-                                    previousUrl = url.getPath();
-                                    String contextPath = req.getContextPath();
-                                    if (previousUrl.startsWith(contextPath)) {
-                                        previousUrl = previousUrl.substring(contextPath.length());
-                                    }
+                        ModelAndView modelAndView = (ModelAndView) returnValue;
+                        String formOrigin = (String) modelAndView.getData().get("error");
+                        Mapping methodFormOrigin = road_controller.get(formOrigin);
+                        HashSet<VerbAction> verbActions = methodFormOrigin.getVerbActions();
+                        for (VerbAction verbAction : verbActions) {
+                            if (verbAction.getVerb().equals("GET")) {
+                                Method methodForm = verbAction.getMethod();
+                                Object returnValueForm = handleMethod(req, methodForm, controllerInstance);
+                                if (returnValueForm instanceof ModelAndView modelView) {
+                                    handleModelAndView(modelView, req, res);
                                 }
-                                req.setAttribute("action", previousUrl);
-                                //throw new Exception("url "+previousUrl);
-                                req.getRequestDispatcher(previousUrl).forward(req, res);
-                            } catch (MalformedURLException e) {
-                                throw new ServletException("URL malformée : " + previousUrl, e);
+                                else {
+                                    throw new ServletException("retour de l'url form error n'est pas de type modelAndView");
+                                }
+                                break;
                             }
-                        } else {
-                            throw new ServletException("En-tête 'Referer' absent");
                         }
+
                     } else {
                         if (returnValue instanceof ModelAndView modelView) {
                             handleModelAndView(modelView, req, res);
