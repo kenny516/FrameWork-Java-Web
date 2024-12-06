@@ -11,9 +11,12 @@ import com.thoughtworks.paranamer.Paranamer;
 import error.ErrorHandler;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
@@ -121,13 +124,20 @@ public class FrontController extends HttpServlet {
                         ModelAndView modelAndView = (ModelAndView) returnValue;
                         String formOrigin = (String) modelAndView.getData().get("error");
                         Mapping methodFormOrigin = road_controller.get(formOrigin);
+
+                        HttpServletRequest getRequest = new HttpServletRequestWrapper(req) {
+                            @Override
+                            public String getMethod() {
+                                return "GET";
+                            }
+                        };
                         HashSet<VerbAction> verbActions = methodFormOrigin.getVerbActions();
                         for (VerbAction verbAction : verbActions) {
                             if (verbAction.getVerb().equals("GET")) {
                                 Method methodForm = verbAction.getMethod();
-                                Object returnValueForm = handleMethod(req, methodForm, controllerInstance);
+                                Object returnValueForm = handleMethod(getRequest, methodForm, controllerInstance);
                                 if (returnValueForm instanceof ModelAndView modelView) {
-                                    handleModelAndView(modelView, req, res);
+                                    handleModelAndView(modelView, getRequest, res);
                                 }
                                 else {
                                     throw new ServletException("retour de l'url form error n'est pas de type modelAndView");

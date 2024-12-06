@@ -45,7 +45,7 @@ public class Requestparam {
 
                 if (setterMethod != null) {
                     Class<?> paramType = setterMethod.getParameters()[0].getType();
-                    Validator.validate(field,paramValue,request);
+                    Validator.validate(field,castValue(paramValue, paramType),request);
                     if (!Validator.verifyErrorRequest(request)){
                         Object castedValue = castValue(paramValue, paramType);
                         setterMethod.invoke(paramInstance, castedValue);
