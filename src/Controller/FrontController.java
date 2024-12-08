@@ -1,6 +1,7 @@
 package Controller;
 
 import Annotation.*;
+import Annotation.validation.Validator;
 import Model.CustomSession;
 import Model.ModelAndView;
 import Utils.*;
@@ -10,9 +11,12 @@ import com.thoughtworks.paranamer.Paranamer;
 import error.ErrorHandler;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
@@ -21,6 +25,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.net.MalformedURLException;
 import java.util.*;
 
 @MultipartConfig(
@@ -61,7 +66,7 @@ public class FrontController extends HttpServlet {
             Mapping mapping = road_controller.get(urlTaped);
 
             if (mapping == null) {
-                handleException(req, resp, new ServletException("Url not found =>" + urlTaped));
+                handleException(req, resp, new ServletException("Url not found => " + urlTaped));
                 return;
             }
 
@@ -74,7 +79,7 @@ public class FrontController extends HttpServlet {
                 }
             }
             if (method == null) {
-                handleException(req, resp, new ServletException("Access denied for method or method doesn't exist" + requestMethod + " not verb found"));
+                handleException(req, resp, new ServletException("Access denied for  method doesn't exist" + requestMethod + " not verb found for URL :"+urlTaped));
                 return;
             }
 
@@ -114,13 +119,41 @@ public class FrontController extends HttpServlet {
                     }
                 }
             } else {
-                if (!res.isCommitted()) {  // Ensure response isn't committed for JSP
-                    if (returnValue instanceof ModelAndView modelView) {
-                        handleModelAndView(modelView, req, res);
-                    } else if (returnValue instanceof String) {
-                        print.println(returnValue);
+                if (!res.isCommitted()) {  // Ensure response isn't committed for JSP// Ensure response isn't committed for JSP
+                    if (Validator.verifyErrorRequest(req)) {
+                        ModelAndView modelAndView = (ModelAndView) returnValue;
+                        String formOrigin = (String) modelAndView.getData().get("error");
+                        Mapping methodFormOrigin = road_controller.get(formOrigin);
+
+                        HttpServletRequest getRequest = new HttpServletRequestWrapper(req) {
+                            @Override
+                            public String getMethod() {
+                                return "GET";
+                            }
+                        };
+                        HashSet<VerbAction> verbActions = methodFormOrigin.getVerbActions();
+                        for (VerbAction verbAction : verbActions) {
+                            if (verbAction.getVerb().equals("GET")) {
+                                Method methodForm = verbAction.getMethod();
+                                Object returnValueForm = handleMethod(getRequest, methodForm, controllerInstance);
+                                if (returnValueForm instanceof ModelAndView modelView) {
+                                    handleModelAndView(modelView, getRequest, res);
+                                }
+                                else {
+                                    throw new ServletException("retour de l'url form error n'est pas de type modelAndView");
+                                }
+                                break;
+                            }
+                        }
+
                     } else {
-                        throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                        if (returnValue instanceof ModelAndView modelView) {
+                            handleModelAndView(modelView, req, res);
+                        } else if (returnValue instanceof String) {
+                            print.println(returnValue);
+                        } else {
+                            throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                        }
                     }
                 }
             }
@@ -136,7 +169,6 @@ public class FrontController extends HttpServlet {
 
     private void handleModelAndView(ModelAndView modelView, HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         Map<String, Object> modelData = modelView.getData();
-
         for (Map.Entry<String, Object> entry : modelData.entrySet()) {
             req.setAttribute(entry.getKey(), entry.getValue());
         }
