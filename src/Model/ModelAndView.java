@@ -13,6 +13,10 @@ public class ModelAndView {
         this.setData(new HashMap<>());
     }
 
+    public ModelAndView() {
+        this.setData(new HashMap<>());
+    }
+
     public HashMap<String, Object> getData() {
         return data;
     }
