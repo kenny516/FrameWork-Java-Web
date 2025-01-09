@@ -1,10 +1,12 @@
 package Controller;
 
 import Annotation.*;
+import Annotation.auth.Auth;
 import Annotation.validation.Validator;
 import Model.CustomSession;
 import Model.ModelAndView;
 import Utils.*;
+import Utils.auth.AuthHandler;
 import com.google.gson.Gson;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
@@ -38,6 +40,8 @@ public class FrontController extends HttpServlet {
     HashMap<String, Mapping> road_controller = new HashMap<>();
     CustomSession customSession;
     ServletException servletException;
+    AuthHandler  authHandler;
+
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -82,8 +86,14 @@ public class FrontController extends HttpServlet {
                 handleException(req, resp, new ServletException("Access denied for  method doesn't exist" + requestMethod + " not verb found for URL :"+urlTaped));
                 return;
             }
-
-
+            if (method.isAnnotationPresent(Auth.class)) {
+                String role = (String) req.getSession(true).getAttribute(authHandler.getRoleAttributeName());
+                String roleMethod = method.getAnnotation(Auth.class).role();
+                if (!authHandler.isAuthorized(role,roleMethod)) {
+                    handleException(req, resp, new ServletException("Access denied for this URL for role user "+ role +" : "+ urlTaped));
+                    return;
+                }
+            }
             process_request(req, resp, method);
         } catch (Exception e) {
             handleException(req, resp, e);
@@ -99,7 +109,6 @@ public class FrontController extends HttpServlet {
             handleException(req, res, this.servletException);
             return;
         }
-
         PrintWriter print = res.getWriter();
         try {
             Class<?> controllerClass = method.getDeclaringClass();
@@ -120,31 +129,18 @@ public class FrontController extends HttpServlet {
                 }
             } else {
                 if (!res.isCommitted()) {  // Ensure response isn't committed for JSP// Ensure response isn't committed for JSP
-                    if (Validator.verifyErrorRequest(req)) {
-                        ModelAndView modelAndView = (ModelAndView) returnValue;
-                        String formOrigin = (String) modelAndView.getData().get("error");
-                        Mapping methodFormOrigin = road_controller.get(formOrigin);
+                    if (Validator.verifyErrorRequest(req) && method.isAnnotationPresent(RollBack.class)) {
+                        String urlformOrigin = method.getAnnotation(RollBack.class).rollBackUrl();
+                        String rollBackmethod  = method.getAnnotation(RollBack.class).method();
 
                         HttpServletRequest getRequest = new HttpServletRequestWrapper(req) {
                             @Override
                             public String getMethod() {
-                                return "GET";
+                                return rollBackmethod;
                             }
                         };
-                        HashSet<VerbAction> verbActions = methodFormOrigin.getVerbActions();
-                        for (VerbAction verbAction : verbActions) {
-                            if (verbAction.getVerb().equals("GET")) {
-                                Method methodForm = verbAction.getMethod();
-                                Object returnValueForm = handleMethod(getRequest, methodForm, controllerInstance);
-                                if (returnValueForm instanceof ModelAndView modelView) {
-                                    handleModelAndView(modelView, getRequest, res);
-                                }
-                                else {
-                                    throw new ServletException("retour de l'url form error n'est pas de type modelAndView");
-                                }
-                                break;
-                            }
-                        }
+
+                        req.getRequestDispatcher(urlformOrigin).forward(getRequest, res);
 
                     } else {
                         if (returnValue instanceof ModelAndView modelView) {
@@ -152,7 +148,8 @@ public class FrontController extends HttpServlet {
                         } else if (returnValue instanceof String) {
                             print.println(returnValue);
                         } else {
-                            throw new IOException("Return type is not supported =>" + returnValue.getClass().getSimpleName());
+                            assert returnValue != null;
+                            throw new IOException("Return type is not supported or contains error =>" + returnValue.getClass().getSimpleName());
                         }
                     }
                 }
@@ -208,6 +205,9 @@ public class FrontController extends HttpServlet {
                 paramValues[i] = requestparam.mappingParam(parameters[i], paramNames[i]);
             }
         }
+        if (Validator.verifyErrorRequest(request)){
+            return null;
+        }
         // Invoke the method and get the return value
         return method.invoke(controllerInstance, paramValues);
     }
@@ -227,6 +227,12 @@ public class FrontController extends HttpServlet {
     public void init() throws ServletException {
         super.init();
         this.customSession = new CustomSession();
+        this.authHandler = new AuthHandler();
+        try {
+            this.authHandler.setupAuth(getServletContext());
+        } catch (Exception e) {
+            this.servletException = new ServletException(e.getMessage());
+        }
         String directory_controller = getServletContext().getInitParameter("controller");
         String realPath = getServletContext().getRealPath(directory_controller);
         String package_class = directory_controller.split("/")[directory_controller.split("/").length - 1];

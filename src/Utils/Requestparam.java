@@ -88,6 +88,9 @@ public class Requestparam {
     }
 
     private Object castValue(String value, Class<?> paramType) {
+        if (value.isEmpty()){
+            return null;
+        }
         if (paramType == int.class || paramType == Integer.class) {
             return Integer.valueOf(value);
         } else if (paramType == double.class || paramType == Double.class) {
