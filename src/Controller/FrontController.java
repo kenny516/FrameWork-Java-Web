@@ -40,7 +40,7 @@ public class FrontController extends HttpServlet {
     HashMap<String, Mapping> road_controller = new HashMap<>();
     CustomSession customSession;
     ServletException servletException;
-    AuthHandler  authHandler;
+    AuthHandler authHandler;
 
 
     @Override
@@ -83,17 +83,23 @@ public class FrontController extends HttpServlet {
                 }
             }
             if (method == null) {
-                handleException(req, resp, new ServletException("Access denied for  method doesn't exist" + requestMethod + " not verb found for URL :"+urlTaped));
+                handleException(req, resp, new ServletException("Access denied for  method doesn't exist" + requestMethod + " not verb found for URL :" + urlTaped));
                 return;
             }
-            if (method.isAnnotationPresent(Auth.class)) {
-                String role = (String) req.getSession(true).getAttribute(authHandler.getRoleAttributeName());
-                String roleMethod = method.getAnnotation(Auth.class).role();
-                if (!authHandler.isAuthorized(role,roleMethod)) {
-                    handleException(req, resp, new ServletException("Access denied for this URL for role user "+ role +" : "+ urlTaped));
-                    return;
-                }
+
+            String role = (String) req.getSession(true).getAttribute(authHandler.getRoleAttributeName());
+            String roleRequis = "";
+            if (method.getDeclaringClass().isAnnotationPresent(Auth.class)) {
+                roleRequis = method.getDeclaringClass().getAnnotation(Auth.class).role();
             }
+            if (method.isAnnotationPresent(Auth.class)) {
+                roleRequis = method.getAnnotation(Auth.class).role();
+            }
+            if (!authHandler.isAuthorized(role, roleRequis)) {
+                handleException(req, resp, new ServletException("Access denied for this URL for role user " + role + " : " + urlTaped));
+                return;
+            }
+
             process_request(req, resp, method);
         } catch (Exception e) {
             handleException(req, resp, e);
@@ -131,7 +137,7 @@ public class FrontController extends HttpServlet {
                 if (!res.isCommitted()) {  // Ensure response isn't committed for JSP// Ensure response isn't committed for JSP
                     if (Validator.verifyErrorRequest(req) && method.isAnnotationPresent(RollBack.class)) {
                         String urlformOrigin = method.getAnnotation(RollBack.class).rollBackUrl();
-                        String rollBackmethod  = method.getAnnotation(RollBack.class).method();
+                        String rollBackmethod = method.getAnnotation(RollBack.class).method();
 
                         HttpServletRequest getRequest = new HttpServletRequestWrapper(req) {
                             @Override
@@ -205,7 +211,7 @@ public class FrontController extends HttpServlet {
                 paramValues[i] = requestparam.mappingParam(parameters[i], paramNames[i]);
             }
         }
-        if (Validator.verifyErrorRequest(request)){
+        if (Validator.verifyErrorRequest(request)) {
             return null;
         }
         // Invoke the method and get the return value

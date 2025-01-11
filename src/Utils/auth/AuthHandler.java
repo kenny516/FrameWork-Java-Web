@@ -27,13 +27,13 @@ public class AuthHandler {
         }
     }
 
-    public boolean isAuthorized(String role,String methodRole){
-        if (methodRole == null || methodRole.isEmpty()){
+    public boolean isAuthorized(String role,String roleRequis){
+        if (roleRequis == null || roleRequis.isEmpty()){
             return true;
         }else if (role == null || role.isEmpty()){
             return false;
         }
-        return role.equals(methodRole);
+        return role.equals(roleRequis);
     }
 
 
