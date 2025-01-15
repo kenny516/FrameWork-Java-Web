@@ -88,12 +88,12 @@ public class FrontController extends HttpServlet {
             }
 
             String role = (String) req.getSession(true).getAttribute(authHandler.getRoleAttributeName());
-            String roleRequis = "";
+            String[] roleRequis = new String[0];
             if (method.getDeclaringClass().isAnnotationPresent(Auth.class)) {
-                roleRequis = method.getDeclaringClass().getAnnotation(Auth.class).role();
+                roleRequis = method.getDeclaringClass().getAnnotation(Auth.class).roles();
             }
             if (method.isAnnotationPresent(Auth.class)) {
-                roleRequis = method.getAnnotation(Auth.class).role();
+                roleRequis = method.getAnnotation(Auth.class).roles();
             }
             if (!authHandler.isAuthorized(role, roleRequis)) {
                 handleException(req, resp, new ServletException("Access denied for this URL for role user " + role + " : " + urlTaped));

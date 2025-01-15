@@ -1,8 +1,10 @@
 package Utils.auth;
 
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
 
 import javax.security.sasl.AuthenticationException;
+
 
 public class AuthHandler {
     String roleAttributeName;
@@ -27,13 +29,18 @@ public class AuthHandler {
         }
     }
 
-    public boolean isAuthorized(String role,String roleRequis){
-        if (roleRequis == null || roleRequis.isEmpty()){
+    public boolean isAuthorized(String role,String[] roleRequis){
+        if (roleRequis == null || roleRequis.length == 0){
             return true;
         }else if (role == null || role.isEmpty()){
             return false;
         }
-        return role.equals(roleRequis);
+        for (String roleRequi : roleRequis){
+            if (roleRequi.equals(role)){
+                return true;
+            }
+        }
+        return false;
     }
 
 
