@@ -7,6 +7,7 @@ import java.util.HashMap;
 public class ModelAndView {
     String url;
     HashMap<String, Object> data;
+    Boolean isRedirect = false;
 
     public ModelAndView(String url){
         this.setUrl(url);
@@ -30,6 +31,14 @@ public class ModelAndView {
     }
 
     public void setUrl(String url) {this.url = url; }
+
+    public Boolean getIsRedirect() {
+        return isRedirect;
+    }
+
+    public void setIsRedirect(Boolean redirect) {
+        isRedirect = redirect;
+    }
 
     public void add_data(String name, Object value) throws Exception {
         if (this.url == null){

@@ -60,7 +60,9 @@ public class AccesController {
     private static String buildClassName(String basePackage, File baseDirectory, File classFile) {
         String relativePath = classFile.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() + 1);
         String className = relativePath.replace(File.separator, ".").replace(".class", "");
-        return basePackage + "." + className;
+
+        // ✅ Si basePackage est vide, ne pas ajouter un point
+        return basePackage.isEmpty() ? className : basePackage + (className.isEmpty() ? "" : "." + className);
     }
 
 

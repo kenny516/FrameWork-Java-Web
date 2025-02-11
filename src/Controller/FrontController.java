@@ -175,6 +175,10 @@ public class FrontController extends HttpServlet {
         for (Map.Entry<String, Object> entry : modelData.entrySet()) {
             req.setAttribute(entry.getKey(), entry.getValue());
         }
+        if(modelView.getIsRedirect()){
+            res.sendRedirect(modelView.getUrl());
+            return;
+        }
         RequestDispatcher dispatcher = req.getRequestDispatcher(modelView.getUrl());
         dispatcher.forward(req, res);
     }
