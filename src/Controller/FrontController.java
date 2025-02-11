@@ -152,7 +152,7 @@ public class FrontController extends HttpServlet {
                         if (returnValue instanceof ModelAndView modelView) {
                             handleModelAndView(modelView, req, res);
                         } else if (returnValue instanceof String) {
-                            print.println(returnValue);
+                            res.sendRedirect((String) returnValue);
                         } else {
                             assert returnValue != null;
                             throw new IOException("Return type is not supported or contains error =>" + returnValue.getClass().getSimpleName());
@@ -241,7 +241,10 @@ public class FrontController extends HttpServlet {
         }
         String directory_controller = getServletContext().getInitParameter("controller");
         String realPath = getServletContext().getRealPath(directory_controller);
-        String package_class = directory_controller.split("/")[directory_controller.split("/").length - 1];
+        String package_class = directory_controller
+                .replace("WEB-INF/classes/", "")  // Enlever le préfixe WEB-INF/classes/
+                .replace("/", ".")                // Remplacer / par .
+                .replace("\\", ".");
         ArrayList<Class<?>> controllers_list = AccesController.getControllerList(package_class, realPath);
         for (Class<?> controller : controllers_list) {
             for (Method method : controller.getMethods()) {
@@ -255,7 +258,6 @@ public class FrontController extends HttpServlet {
                         Mapping mp = new Mapping();
                         mp.setClass_name(controller.getName());
                         mp.getVerbActions().add(verbAction);
-
                         road_controller.put(url, mp);
                     } else {
                         if (!controller.getName().equals(mappingCurrent.getClass_name())) {

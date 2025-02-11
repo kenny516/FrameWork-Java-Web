@@ -70,7 +70,7 @@ public class Requestparam {
 
             if (valueNameParts.length > 1 && valueNameParts[0].equals(name)) {
                 listOfParamObj.add(paramName);
-            } else if (param.isAnnotationPresent(Param.class) && valueNameParts[0].equals(param.getAnnotation(Param.class).name())) {
+            } else if (param.isAnnotationPresent(Param.class) && valueNameParts[0].equals(param.getAnnotation(Param.class).name()) && valueNameParts.length > 1) {
                 listOfParamObj.add(paramName);
             }
         }
@@ -114,12 +114,11 @@ public class Requestparam {
     private Object getParameterValue(Parameter param, String name) {
         // Check if the parameter exists in the request
         if (request.getParameter(name) != null) {
-            return request.getParameter(name);
+            return  castValue(request.getParameter(name),param.getType());
         }
-        // Handle annotated parameter
         if (param.isAnnotationPresent(Param.class)) {
             String paramName = param.getAnnotation(Param.class).name();
-            return request.getParameter(paramName);
+            return castValue(request.getParameter(paramName),param.getType());
         }
 
         return null;
