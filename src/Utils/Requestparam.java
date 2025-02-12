@@ -88,6 +88,9 @@ public class Requestparam {
     }
 
     private Object castValue(String value, Class<?> paramType) {
+        if (value == null) {
+            return null;
+        }
         if (value.isEmpty()){
             return null;
         }
