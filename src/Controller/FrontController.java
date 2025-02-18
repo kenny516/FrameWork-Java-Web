@@ -58,8 +58,8 @@ public class FrontController extends HttpServlet {
         ErrorHandler.handleException(req, res, e);
     }
 
-    private void handleRestApiException(HttpServletResponse res, Exception e) throws IOException {
-        ErrorHandler.handleRestApiException(res, e);
+    private void handleRestApiException(HttpServletRequest req,HttpServletResponse res, Exception e) throws IOException {
+        ErrorHandler.handleRestApiException(req,res, e);
     }
 
 
@@ -162,7 +162,7 @@ public class FrontController extends HttpServlet {
             }
         } catch (Exception e) {
             if (method.isAnnotationPresent(RestApi.class)) {
-                handleRestApiException(res, e);
+                handleRestApiException(req,res, e);
             } else {
                 handleException(req, res, e);
             }
