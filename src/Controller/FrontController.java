@@ -137,6 +137,7 @@ public class FrontController extends HttpServlet {
                 if (!res.isCommitted()) {  // Ensure response isn't committed for JSP// Ensure response isn't committed for JSP
                     if (Validator.verifyErrorRequest(req) && method.isAnnotationPresent(RollBack.class)) {
                         String urlformOrigin = method.getAnnotation(RollBack.class).rollBackUrl();
+                        System.out.println("urlformOrigin" + urlformOrigin);
                         String rollBackmethod = method.getAnnotation(RollBack.class).method();
 
                         HttpServletRequest getRequest = new HttpServletRequestWrapper(req) {
@@ -145,10 +146,9 @@ public class FrontController extends HttpServlet {
                                 return rollBackmethod;
                             }
                         };
-
                         req.getRequestDispatcher(urlformOrigin).forward(getRequest, res);
-
                     } else {
+                        System.out.println("return value" +returnValue);
                         if (returnValue instanceof ModelAndView modelView) {
                             handleModelAndView(modelView, req, res);
                         } else if (returnValue instanceof String) {
@@ -194,7 +194,7 @@ public class FrontController extends HttpServlet {
     }
 
     private Object handleMethod(HttpServletRequest request, Method method, Object controllerInstance) throws Exception {
-
+        boolean errorIsForMe = !Validator.verifyErrorRequest(request);
         Parameter[] parameters = method.getParameters();
         if (parameters.length == 0) {
             return method.invoke(controllerInstance);
@@ -203,6 +203,7 @@ public class FrontController extends HttpServlet {
 
         Paranamer paranamer = new BytecodeReadingParanamer();
         String[] paramNames = paranamer.lookupParameterNames(method);
+
 
         Requestparam requestparam = new Requestparam(request);
         for (int i = 0; i < parameters.length; i++) {
@@ -215,7 +216,7 @@ public class FrontController extends HttpServlet {
                 paramValues[i] = requestparam.mappingParam(parameters[i], paramNames[i]);
             }
         }
-        if (Validator.verifyErrorRequest(request)) {
+        if (Validator.verifyErrorRequest(request) && errorIsForMe) {
             return null;
         }
         // Invoke the method and get the return value
