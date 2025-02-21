@@ -50,18 +50,22 @@ public class UploadFile {
 
     /**
      * Saves an uploaded file to the specified directory
+     *
      * @param uploadDir The directory to save the file to do not put just / or \ as it will save to the root directory put a name of directory or..
      *                  the racine is tomcat
+     * @param  fileName The name of the file to save you can make it null or empty if you want to keep the original name
      * @return The path of the saved file
      * @throws IOException if file operations fail
-     * @throws Exception if validation fails
+     * @throws Exception   if validation fails
      */
-    public String saveFile(String uploadDir) throws Exception {
+    public String saveFile(String uploadDir, String fileName) throws Exception {
         Path rootPath = (uploadDir == null || uploadDir.isEmpty())
                 ? Paths.get("").toAbsolutePath().resolve("uploads")
                 : Paths.get(uploadDir).toAbsolutePath();
 
-        String fileName = extractFileName(this.getPart());
+        if (fileName == null || fileName.isEmpty()) {
+            fileName = extractFileName(this.getPart());
+        }
         if (fileName == null || fileName.isEmpty()) {
             throw new Exception("File does not have a name");
         }
@@ -81,6 +85,7 @@ public class UploadFile {
 
     /**
      * Gets the byte array of an uploaded file
+     *
      * @return byte array containing the file data
      */
     public byte[] getBytes() throws IOException {

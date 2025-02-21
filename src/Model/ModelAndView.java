@@ -9,7 +9,7 @@ public class ModelAndView {
     HashMap<String, Object> data;
     Boolean isRedirect = false;
 
-    public ModelAndView(String url){
+    public ModelAndView(String url) {
         this.setUrl(url);
         this.setData(new HashMap<>());
     }
@@ -30,7 +30,9 @@ public class ModelAndView {
         return url;
     }
 
-    public void setUrl(String url) {this.url = url; }
+    public void setUrl(String url) {
+        this.url = url;
+    }
 
     public Boolean getIsRedirect() {
         return isRedirect;
@@ -40,9 +42,17 @@ public class ModelAndView {
         isRedirect = redirect;
     }
 
+
+    /**
+     * Adds a key-value pair to the model's data map.
+     *
+     * @param name  The key for the data entry
+     * @param value The value to be associated with the key
+     * @throws Exception if the view URL is null
+     */
     public void add_data(String name, Object value) throws Exception {
-        if (this.url == null){
-            throw new Exception("url Model and view null");
+        if (this.url == null) {
+            throw new Exception("url of ModelAndview is null");
         }
         this.data.put(name, value);
     }
