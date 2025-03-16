@@ -6,11 +6,14 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ErrorHandler {
@@ -269,7 +272,7 @@ public class ErrorHandler {
                 requestId,                      // %s (script - ID Requête)
                 escapeJs(e.getMessage()),       // %s (script - Message)
                 escapeJs(e.getClass().getSimpleName()), // %s (script - Type)
-                escapeJs(stackTrace)           // %s (script - StackTrace)
+                stackTrace           // %s (script - StackTrace)
         );
     }
 
@@ -285,7 +288,6 @@ public class ErrorHandler {
 
         if (isDevelopmentMode()) {
             details.put("stackTrace", Arrays.stream(e.getStackTrace())
-                    .limit(10)
                     .map(StackTraceElement::toString)
                     .collect(Collectors.toList()));
         }
@@ -294,11 +296,16 @@ public class ErrorHandler {
     }
 
     private static String getFilteredStackTrace(Exception e) {
-        return Arrays.stream(e.getStackTrace())
-                .limit(15)
-                .map(StackTraceElement::toString)
-                .collect(Collectors.joining("\n"));
+        Logger.getLogger(ErrorHandler.class.getName()).log(Level.SEVERE, null, e);
+        return getFullStackTrace(e);
     }
+    public static String getFullStackTrace(Throwable e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);  // Capture le même output que printStackTrace()
+        return sw.toString();
+    }
+
 
     private static String generateRequestId() {
         return Long.toHexString(System.currentTimeMillis()) + "-" +
@@ -323,7 +330,8 @@ public class ErrorHandler {
     }
 
     private static boolean isDevelopmentMode() {
-        return System.getProperty("app.environment", "development")
-                .equalsIgnoreCase("development");
+        return true;
+//        return System.getProperty("app.environment", "development")
+//                .equalsIgnoreCase("development");
     }
 }
