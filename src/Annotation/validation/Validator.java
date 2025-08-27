@@ -43,7 +43,6 @@ public class Validator {
                 // error_fieldName pour recuperer l'erreur
                 errors.put("error_" + field.getName(), e.getMessage());
             }
-
         // Ajouter les erreurs à la requête
         if (!errors.isEmpty()) {
             request.setAttribute("error",true);
